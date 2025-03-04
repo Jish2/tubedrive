@@ -1,66 +1,35 @@
-import { useEffect, useState } from "react";
-import { GoogleLogin } from "@react-oauth/google";
-import styled from "@emotion/styled";
-import { retrieveAllPlaylists } from "./constants";
-
-const getOAuthRedirect = () => {
-	const scope = "https://www.googleapis.com/auth/youtubepartner";
-	const client_id = import.meta.env.VITE_GOOGLE_CLIENTID;
-	const redirect_uri = import.meta.env.VITE_REDIRECT_URI;
-
-	return `https://accounts.google.com/o/oauth2/v2/auth?
-scope=${scope}&
-include_granted_scopes=true&
-state=state_parameter_passthrough_value&
-redirect_uri=${redirect_uri}&
-response_type=token&
-client_id=${client_id}
-  `;
-};
-
-const GoogleLoginWrapper = styled.div`
-	color-scheme: light;
-`;
-
-interface Credential {
-	credential: string;
-	clientId: string;
-	select_by: 'btn';
-}
+import { useState } from 'react'
+import reactLogo from './assets/react.svg'
+import viteLogo from '/vite.svg'
+import './App.css'
 
 function App() {
+  const [count, setCount] = useState(0)
 
-	const [credentials, setCredentials] = useState<Credential | null>(null)
-
-	useEffect(() => {
-		console.log(credentials);
-	}, []);
-
-	return (
-		<>
-			<GoogleLoginWrapper>
-				<GoogleLogin
-					onSuccess={(credentialResponse) => {
-						setCredentials(credentialResponse as Credential);
-						console.log(credentialResponse);
-					}}
-					onError={() => {
-						console.log("Login Failed");
-					}}
-					// useOneTap
-				/>
-			</GoogleLoginWrapper>
-			<div>
-				<a href="https://developers.google.com/youtube/v3/guides/implementation/playlists">link to api docs</a>
-			</div>
-			<button>
-				<a onClick={() => retrieveAllPlaylists()}>fetch all</a>
-			</button>
-			{/* <button>
-				<a href={getOAuthRedirect()}>sign in with google</a>
-			</button> */}
-		</>
-	);
+  return (
+    <>
+      <div>
+        <a href="https://vite.dev" target="_blank">
+          <img src={viteLogo} className="logo" alt="Vite logo" />
+        </a>
+        <a href="https://react.dev" target="_blank">
+          <img src={reactLogo} className="logo react" alt="React logo" />
+        </a>
+      </div>
+      <h1>Vite + React</h1>
+      <div className="card">
+        <button onClick={() => setCount((count) => count + 1)}>
+          count is {count}
+        </button>
+        <p>
+          Edit <code>src/App.tsx</code> and save to test HMR
+        </p>
+      </div>
+      <p className="read-the-docs">
+        Click on the Vite and React logos to learn more
+      </p>
+    </>
+  )
 }
 
-export default App;
+export default App
