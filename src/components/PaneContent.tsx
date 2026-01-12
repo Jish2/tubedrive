@@ -267,8 +267,11 @@ export default function PaneContent({
       <>
         {/* Toolbar with Breadcrumb */}
         <div className="flex-shrink-0 border-b border-gray-700 bg-gray-900 px-6 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <nav className="flex items-center gap-2" aria-label="Breadcrumb">
+          <div className="toolbar-container flex items-center justify-between gap-4 min-w-0">
+            <nav
+              className="flex items-center gap-2 min-w-0 flex-1"
+              aria-label="Breadcrumb"
+            >
               <button
                 onClick={() => onBreadcrumbClick(-1)}
                 className="text-gray-400 hover:text-white transition-colors flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800"
@@ -316,13 +319,14 @@ export default function PaneContent({
                 </div>
               ))}
             </nav>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={() => setIsAddVideoModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-white text-sm font-medium"
+                className="toolbar-button flex items-center gap-2 px-2 md:px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-white text-sm font-medium"
+                title="Add Video"
               >
                 <svg
-                  className="w-4 h-4"
+                  className="w-4 h-4 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -334,14 +338,15 @@ export default function PaneContent({
                     d="M12 4v16m8-8H4"
                   />
                 </svg>
-                Add Video
+                <span className="toolbar-button-text">Add Video</span>
               </button>
               <button
                 onClick={() => setIsImportPlaylistModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-white text-sm font-medium"
+                className="toolbar-button flex items-center gap-2 px-2 md:px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-white text-sm font-medium"
+                title="Import Playlist"
               >
                 <svg
-                  className="w-4 h-4"
+                  className="w-4 h-4 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -353,7 +358,7 @@ export default function PaneContent({
                     d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                   />
                 </svg>
-                Import Playlist
+                <span className="toolbar-button-text">Import Playlist</span>
               </button>
             </div>
           </div>
@@ -527,15 +532,16 @@ export default function PaneContent({
     <>
       {/* Toolbar */}
       <div className="flex-shrink-0 border-b border-gray-700 bg-gray-900 px-6 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold">YouTube Playlists</h1>
-          <div className="flex items-center gap-2">
+        <div className="toolbar-container flex items-center justify-between gap-4 min-w-0">
+          <h1 className="text-2xl font-bold truncate">YouTube Playlists</h1>
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={() => setIsCreatePlaylistModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-white text-sm font-medium"
+              className="toolbar-button flex items-center gap-2 px-2 md:px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-white text-sm font-medium"
+              title="Create Playlist"
             >
               <svg
-                className="w-4 h-4"
+                className="w-4 h-4 flex-shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -547,14 +553,15 @@ export default function PaneContent({
                   d="M12 4v16m8-8H4"
                 />
               </svg>
-              Create Playlist
+              <span className="toolbar-button-text">Create Playlist</span>
             </button>
             <button
               onClick={() => setIsImportPlaylistModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-white text-sm font-medium"
+              className="toolbar-button flex items-center gap-2 px-2 md:px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-white text-sm font-medium"
+              title="Import Playlist"
             >
               <svg
-                className="w-4 h-4"
+                className="w-4 h-4 flex-shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -566,7 +573,7 @@ export default function PaneContent({
                   d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                 />
               </svg>
-              Import Playlist
+              <span className="toolbar-button-text">Import Playlist</span>
             </button>
           </div>
         </div>

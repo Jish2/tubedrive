@@ -28,3 +28,19 @@ body {
   height: 100vh;
   overflow: hidden;
 }
+
+/* Container query for toolbar buttons - hide text when toolbar is narrow */
+.toolbar-container {
+  container-type: inline-size;
+}
+
+@container (max-width: 600px) {
+  .toolbar-button-text {
+    display: none;
+  }
+
+  .toolbar-button {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
