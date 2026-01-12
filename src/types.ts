@@ -3,6 +3,7 @@ export interface FileItem {
   name: string;
   type: 'file';
   thumbnailUrl?: string;
+  videoId?: string;
 }
 
 export interface FolderItem {

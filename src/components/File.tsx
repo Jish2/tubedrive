@@ -3,10 +3,11 @@ import { FileItem } from '../types';
 
 interface FileProps {
   file: FileItem;
+  paneId: string;
   onDelete: (id: string) => void;
 }
 
-export default function File({ file, onDelete }: FileProps) {
+export default function File({ file, paneId, onDelete }: FileProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [thumbnailError, setThumbnailError] = useState(false);
 
@@ -14,7 +15,12 @@ export default function File({ file, onDelete }: FileProps) {
     setIsDragging(true);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', file.id);
-    e.dataTransfer.setData('type', 'file');
+    e.dataTransfer.setData('type', 'video');
+    e.dataTransfer.setData('playlistItemId', file.id);
+    if (file.videoId) {
+      e.dataTransfer.setData('videoId', file.videoId);
+    }
+    e.dataTransfer.setData('sourcePaneId', paneId);
   };
 
   const handleDragEnd = () => {

@@ -1,5 +1,5 @@
 import { useAuth } from "./contexts/AuthContext";
-import FolderView from "./components/FolderView";
+import MultiPaneView from "./components/MultiPaneView";
 import Login from "./components/Login";
 import UserMenu from "./components/UserMenu";
 
@@ -27,7 +27,7 @@ function App() {
         </div>
       </div>
       <div className="flex-1 overflow-hidden">
-        <FolderView />
+        <MultiPaneView />
       </div>
     </div>
   );
