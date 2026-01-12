@@ -10,6 +10,7 @@ interface FolderProps {
 
 export default function Folder({ folder, onDelete, onFileDrop, onClick }: FolderProps) {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -57,7 +58,7 @@ export default function Folder({ folder, onDelete, onFileDrop, onClick }: Folder
 
   return (
     <div
-      className={`group relative aspect-square bg-gray-800 rounded-lg hover:bg-gray-700 cursor-pointer border-2 transition-all flex flex-col items-center justify-center p-4 ${
+      className={`group relative aspect-square bg-gray-800 rounded-lg hover:bg-gray-700 cursor-pointer border-2 transition-all flex flex-col items-stretch p-2 ${
         isDragOver 
           ? 'border-blue-500 bg-blue-900/70 scale-105 shadow-2xl shadow-blue-500/50 ring-4 ring-blue-500/30' 
           : 'border-transparent hover:border-gray-500'
@@ -76,21 +77,32 @@ export default function Folder({ folder, onDelete, onFileDrop, onClick }: Folder
           </div>
         </div>
       )}
-      <svg
-        className={`w-16 h-16 mb-2 transition-colors ${
-          isDragOver ? 'text-blue-300' : 'text-yellow-400'
-        }`}
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-        />
-      </svg>
+      <div className="w-full flex-1 flex items-center justify-center mb-2 relative min-h-0">
+        {folder.thumbnailUrl && !thumbnailError ? (
+          <img
+            src={folder.thumbnailUrl}
+            alt={folder.name}
+            className="w-full h-full object-cover rounded"
+            onError={() => setThumbnailError(true)}
+          />
+        ) : (
+          <svg
+            className={`w-16 h-16 transition-colors ${
+              isDragOver ? 'text-blue-300' : 'text-yellow-400'
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+            />
+          </svg>
+        )}
+      </div>
       <span className={`text-sm text-center truncate w-full px-2 transition-colors ${
         isDragOver ? 'text-blue-200 font-semibold' : 'text-gray-200'
       }`} title={folder.name}>

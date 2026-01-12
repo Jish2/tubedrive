@@ -27,6 +27,10 @@ export default function FolderView() {
       name: playlist.snippet.title,
       type: "folder" as const,
       files: [], // Files will be loaded when folder is opened
+      thumbnailUrl:
+        playlist.snippet.thumbnails?.high?.url ||
+        playlist.snippet.thumbnails?.medium?.url ||
+        playlist.snippet.thumbnails?.default?.url,
     }));
   }, [playlists]);
 
@@ -36,6 +40,10 @@ export default function FolderView() {
       id: item.id,
       name: item.snippet.title,
       type: "file" as const,
+      thumbnailUrl:
+        item.snippet.thumbnails?.high?.url ||
+        item.snippet.thumbnails?.medium?.url ||
+        item.snippet.thumbnails?.default?.url,
     }));
   }, [playlistItems]);
 

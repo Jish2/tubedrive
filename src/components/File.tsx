@@ -8,6 +8,7 @@ interface FileProps {
 
 export default function File({ file, onDelete }: FileProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState(false);
 
   const handleDragStart = (e: React.DragEvent) => {
     setIsDragging(true);
@@ -30,25 +31,36 @@ export default function File({ file, onDelete }: FileProps) {
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      className={`group relative aspect-square bg-gray-700 rounded-lg hover:bg-gray-600 cursor-move border-2 transition-all flex flex-col items-center justify-center p-4 ${
+      className={`group relative aspect-square bg-gray-700 rounded-lg hover:bg-gray-600 cursor-move border-2 transition-all flex flex-col items-stretch p-2 ${
         isDragging 
           ? 'opacity-50 scale-95 border-blue-500' 
           : 'border-transparent hover:border-gray-500'
       }`}
     >
-      <svg
-        className="w-16 h-16 text-blue-400 mb-2"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-        />
-      </svg>
+      <div className="w-full flex-1 flex items-center justify-center mb-2 relative min-h-0">
+        {file.thumbnailUrl && !thumbnailError ? (
+          <img
+            src={file.thumbnailUrl}
+            alt={file.name}
+            className="w-full h-full object-cover rounded"
+            onError={() => setThumbnailError(true)}
+          />
+        ) : (
+          <svg
+            className="w-16 h-16 text-blue-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+        )}
+      </div>
       <span className="text-sm text-center text-gray-200 truncate w-full px-2" title={file.name}>
         {file.name}
       </span>
