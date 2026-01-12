@@ -1,21 +1,31 @@
-import { useState, useMemo } from 'react';
-import { FolderItem, FileItem } from '../types';
-import Folder from './Folder';
-import File from './File';
-import { useYouTubePlaylists } from '../hooks/useYouTubePlaylists';
-import { usePlaylistItems } from '../hooks/usePlaylistItems';
+import { useState, useMemo } from "react";
+import { FolderItem, FileItem } from "../types";
+import Folder from "./Folder";
+import File from "./File";
+import AddVideoButton from "./AddVideoButton";
+import AddVideoModal from "./AddVideoModal";
+import { useYouTubePlaylists } from "../hooks/useYouTubePlaylists";
+import { usePlaylistItems } from "../hooks/usePlaylistItems";
+import { useAuth } from "../contexts/AuthContext";
+import { addVideoToPlaylist } from "../services/youtubeApi";
 
 export default function FolderView() {
   const { playlists, loading: playlistsLoading } = useYouTubePlaylists();
+  const { token } = useAuth();
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-  const { items: playlistItems, loading: itemsLoading } = usePlaylistItems(currentFolderId);
+  const {
+    items: playlistItems,
+    loading: itemsLoading,
+    reload: reloadPlaylistItems,
+  } = usePlaylistItems(currentFolderId);
+  const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
 
   // Convert YouTube playlists to FolderItem format
   const folders = useMemo<FolderItem[]>(() => {
     return playlists.map((playlist) => ({
       id: playlist.id,
       name: playlist.snippet.title,
-      type: 'folder' as const,
+      type: "folder" as const,
       files: [], // Files will be loaded when folder is opened
     }));
   }, [playlists]);
@@ -25,7 +35,7 @@ export default function FolderView() {
     return playlistItems.map((item) => ({
       id: item.id,
       name: item.snippet.title,
-      type: 'file' as const,
+      type: "file" as const,
     }));
   }, [playlistItems]);
 
@@ -37,7 +47,20 @@ export default function FolderView() {
     setCurrentFolderId(null);
   };
 
-  const currentFolder = currentFolderId ? folders.find((f) => f.id === currentFolderId) : null;
+  const handleAddVideo = async (videoId: string) => {
+    if (!token || !currentFolderId) {
+      throw new Error("Missing token or playlist ID");
+    }
+    await addVideoToPlaylist(token, currentFolderId, videoId);
+    // Reload the playlist items to show the new video
+    // Add a small delay to ensure YouTube API has processed the addition
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await reloadPlaylistItems();
+  };
+
+  const currentFolder = currentFolderId
+    ? folders.find((f) => f.id === currentFolderId)
+    : null;
 
   // When viewing a folder, show its contents
   if (currentFolder) {
@@ -50,14 +73,34 @@ export default function FolderView() {
               onClick={handleBackClick}
               className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-2"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
               Back
             </button>
             <h1 className="text-2xl font-bold flex items-center gap-3">
-              <svg className="w-7 h-7 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+              <svg
+                className="w-7 h-7 text-yellow-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                />
               </svg>
               {currentFolder.name}
             </h1>
@@ -70,15 +113,9 @@ export default function FolderView() {
             <div className="text-gray-500 text-center py-16 h-full flex flex-col items-center justify-center">
               <div className="text-white">Loading videos...</div>
             </div>
-          ) : files.length === 0 ? (
-            <div className="text-gray-500 text-center py-16 h-full flex flex-col items-center justify-center">
-              <svg className="w-24 h-24 mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p className="text-lg">This playlist is empty</p>
-            </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
+              <AddVideoButton onClick={() => setIsAddVideoModalOpen(true)} />
               {files.map((file) => (
                 <File
                   key={file.id}
@@ -89,6 +126,12 @@ export default function FolderView() {
             </div>
           )}
         </div>
+        <AddVideoModal
+          isOpen={isAddVideoModalOpen}
+          onClose={() => setIsAddVideoModalOpen(false)}
+          onAdd={handleAddVideo}
+          playlistName={currentFolder.name}
+        />
       </div>
     );
   }
@@ -112,7 +155,9 @@ export default function FolderView() {
         ) : folders.length === 0 ? (
           <div className="text-gray-500 text-center py-16 h-full flex flex-col items-center justify-center">
             <p className="text-lg">No playlists found</p>
-            <p className="text-sm mt-2">Your YouTube playlists will appear here</p>
+            <p className="text-sm mt-2">
+              Your YouTube playlists will appear here
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
@@ -134,4 +179,3 @@ export default function FolderView() {
     </div>
   );
 }
-
