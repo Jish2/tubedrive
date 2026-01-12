@@ -6,34 +6,57 @@ import {
   removeVideoFromPlaylist,
 } from "../services/youtubeApi";
 
+interface BreadcrumbItem {
+  id: string;
+  name: string;
+}
+
 interface PaneState {
   id: string;
-  currentFolderId: string | null;
+  breadcrumb: BreadcrumbItem[];
 }
 
 export default function MultiPaneView() {
   const { token } = useAuth();
   const [panes, setPanes] = useState<PaneState[]>([
-    { id: "pane-1", currentFolderId: null },
+    { id: "pane-1", breadcrumb: [] },
   ]);
 
-  const handleFolderClick = useCallback((paneId: string, folderId: string) => {
+  const handleFolderClick = useCallback(
+    (paneId: string, folderId: string, folderName: string) => {
+      setPanes((prev) =>
+        prev.map((p) =>
+          p.id === paneId
+            ? {
+                ...p,
+                breadcrumb: [
+                  ...p.breadcrumb,
+                  { id: folderId, name: folderName },
+                ],
+              }
+            : p
+        )
+      );
+    },
+    []
+  );
+
+  const handleBreadcrumbClick = useCallback((paneId: string, index: number) => {
     setPanes((prev) =>
       prev.map((p) =>
-        p.id === paneId ? { ...p, currentFolderId: folderId } : p
+        p.id === paneId
+          ? {
+              ...p,
+              breadcrumb: index === -1 ? [] : p.breadcrumb.slice(0, index + 1),
+            }
+          : p
       )
-    );
-  }, []);
-
-  const handleBackClick = useCallback((paneId: string) => {
-    setPanes((prev) =>
-      prev.map((p) => (p.id === paneId ? { ...p, currentFolderId: null } : p))
     );
   }, []);
 
   const handleAddPane = useCallback(() => {
     const newPaneId = `pane-${Date.now()}`;
-    setPanes((prev) => [...prev, { id: newPaneId, currentFolderId: null }]);
+    setPanes((prev) => [...prev, { id: newPaneId, breadcrumb: [] }]);
   }, []);
 
   const handleClosePane = useCallback(
@@ -157,10 +180,13 @@ export default function MultiPaneView() {
             )}
             <Pane
               paneId={pane.id}
-              currentFolderId={pane.currentFolderId}
-              onFolderClick={(folderId) => handleFolderClick(pane.id, folderId)}
-              onBackClick={() => handleBackClick(pane.id)}
-              onClose={() => handleClosePane(pane.id)}
+              breadcrumb={pane.breadcrumb}
+              onFolderClick={(folderId, folderName) =>
+                handleFolderClick(pane.id, folderId, folderName)
+              }
+              onBreadcrumbClick={(index) =>
+                handleBreadcrumbClick(pane.id, index)
+              }
               onFileDrop={handleFileDrop}
             />
           </div>

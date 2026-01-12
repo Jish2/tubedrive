@@ -14,11 +14,16 @@ import {
   removeVideoFromPlaylist,
 } from "../services/youtubeApi";
 
+interface BreadcrumbItem {
+  id: string;
+  name: string;
+}
+
 interface PaneContentProps {
   paneId: string;
-  currentFolderId: string | null;
-  onFolderClick: (folderId: string) => void;
-  onBackClick: () => void;
+  breadcrumb: BreadcrumbItem[];
+  onFolderClick: (folderId: string, folderName: string) => void;
+  onBreadcrumbClick: (index: number) => void;
   onFileDrop?: (
     playlistId: string,
     videoId: string,
@@ -36,11 +41,13 @@ type DragVideoData = {
 
 export default function PaneContent({
   paneId,
-  currentFolderId,
+  breadcrumb,
   onFolderClick,
-  onBackClick,
+  onBreadcrumbClick,
   onFileDrop,
 }: PaneContentProps) {
+  const currentFolderId =
+    breadcrumb.length > 0 ? breadcrumb[breadcrumb.length - 1].id : null;
   const {
     playlists,
     loading: playlistsLoading,
@@ -178,44 +185,57 @@ export default function PaneContent({
   if (currentFolder) {
     return (
       <>
-        {/* Toolbar */}
+        {/* Toolbar with Breadcrumb */}
         <div className="flex-shrink-0 border-b border-gray-700 bg-gray-900 px-6 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onBackClick}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-2"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          <div className="flex items-center gap-2">
+            <nav className="flex items-center gap-2" aria-label="Breadcrumb">
+              <button
+                onClick={() => onBreadcrumbClick(-1)}
+                className="text-gray-400 hover:text-white transition-colors flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-              Back
-            </button>
-            <h1 className="text-2xl font-bold flex items-center gap-3">
-              <svg
-                className="w-7 h-7 text-yellow-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                />
-              </svg>
-              {currentFolder.name}
-            </h1>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                  />
+                </svg>
+                <span className="text-sm font-medium">YouTube Playlists</span>
+              </button>
+              {breadcrumb.map((item, index) => (
+                <div key={item.id} className="flex items-center gap-2">
+                  <svg
+                    className="w-4 h-4 text-gray-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                  <button
+                    onClick={() => onBreadcrumbClick(index)}
+                    className={`text-sm font-medium transition-colors px-2 py-1 rounded hover:bg-gray-800 ${
+                      index === breadcrumb.length - 1
+                        ? "text-white"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    {item.name}
+                  </button>
+                </div>
+              ))}
+            </nav>
           </div>
         </div>
 
@@ -381,7 +401,7 @@ export default function PaneContent({
                 }}
                 onDelete={() => {}}
                 onFileDrop={() => {}}
-                onClick={() => onFolderClick(folder.id)}
+                onClick={() => onFolderClick(folder.id, folder.name)}
               />
             ))}
           </div>

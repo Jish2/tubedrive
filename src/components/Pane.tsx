@@ -1,11 +1,15 @@
 import PaneContent from "./PaneContent";
 
+interface BreadcrumbItem {
+  id: string;
+  name: string;
+}
+
 interface PaneProps {
   paneId: string;
-  currentFolderId: string | null;
-  onFolderClick: (folderId: string) => void;
-  onBackClick: () => void;
-  onClose: () => void;
+  breadcrumb: BreadcrumbItem[];
+  onFolderClick: (folderId: string, folderName: string) => void;
+  onBreadcrumbClick: (index: number) => void;
   onFileDrop?: (
     playlistId: string,
     videoId: string,
@@ -16,10 +20,9 @@ interface PaneProps {
 
 export default function Pane({
   paneId,
-  currentFolderId,
+  breadcrumb,
   onFolderClick,
-  onBackClick,
-  onClose,
+  onBreadcrumbClick,
   onFileDrop,
 }: PaneProps) {
   return (
@@ -34,9 +37,9 @@ export default function Pane({
     >
       <PaneContent
         paneId={paneId}
-        currentFolderId={currentFolderId}
+        breadcrumb={breadcrumb}
         onFolderClick={onFolderClick}
-        onBackClick={onBackClick}
+        onBreadcrumbClick={onBreadcrumbClick}
         onFileDrop={onFileDrop}
       />
     </div>
