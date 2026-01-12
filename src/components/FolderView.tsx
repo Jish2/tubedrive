@@ -4,13 +4,19 @@ import Folder from "./Folder";
 import File from "./File";
 import AddVideoButton from "./AddVideoButton";
 import AddVideoModal from "./AddVideoModal";
+import CreatePlaylistButton from "./CreatePlaylistButton";
+import CreatePlaylistModal from "./CreatePlaylistModal";
 import { useYouTubePlaylists } from "../hooks/useYouTubePlaylists";
 import { usePlaylistItems } from "../hooks/usePlaylistItems";
 import { useAuth } from "../contexts/AuthContext";
 import { addVideoToPlaylist } from "../services/youtubeApi";
 
 export default function FolderView() {
-  const { playlists, loading: playlistsLoading } = useYouTubePlaylists();
+  const {
+    playlists,
+    loading: playlistsLoading,
+    createPlaylist,
+  } = useYouTubePlaylists();
   const { token } = useAuth();
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const {
@@ -19,19 +25,26 @@ export default function FolderView() {
     reload: reloadPlaylistItems,
   } = usePlaylistItems(currentFolderId);
   const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
+  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
+    useState(false);
 
   // Convert YouTube playlists to FolderItem format
   const folders = useMemo<FolderItem[]>(() => {
-    return playlists.map((playlist) => ({
-      id: playlist.id,
-      name: playlist.snippet.title,
-      type: "folder" as const,
-      files: [], // Files will be loaded when folder is opened
-      thumbnailUrl:
-        playlist.snippet.thumbnails?.high?.url ||
-        playlist.snippet.thumbnails?.medium?.url ||
-        playlist.snippet.thumbnails?.default?.url,
-    }));
+    return playlists.map((playlist) => {
+      // Don't show thumbnail for empty playlists - use folder icon instead
+      const isEmpty = playlist.contentDetails?.itemCount === 0;
+      return {
+        id: playlist.id,
+        name: playlist.snippet.title,
+        type: "folder" as const,
+        files: [], // Files will be loaded when folder is opened
+        thumbnailUrl: isEmpty
+          ? undefined
+          : playlist.snippet.thumbnails?.high?.url ||
+            playlist.snippet.thumbnails?.medium?.url ||
+            playlist.snippet.thumbnails?.default?.url,
+      };
+    });
   }, [playlists]);
 
   // Convert YouTube playlist items to FileItem format
@@ -64,6 +77,14 @@ export default function FolderView() {
     // Add a small delay to ensure YouTube API has processed the addition
     await new Promise((resolve) => setTimeout(resolve, 500));
     await reloadPlaylistItems();
+  };
+
+  const handleCreatePlaylist = async (
+    title: string,
+    description: string,
+    privacyStatus: "private" | "unlisted" | "public"
+  ) => {
+    await createPlaylist(title, description, privacyStatus);
   };
 
   const currentFolder = currentFolderId
@@ -160,15 +181,11 @@ export default function FolderView() {
           <div className="text-gray-500 text-center py-16 h-full flex flex-col items-center justify-center">
             <div className="text-white">Loading playlists...</div>
           </div>
-        ) : folders.length === 0 ? (
-          <div className="text-gray-500 text-center py-16 h-full flex flex-col items-center justify-center">
-            <p className="text-lg">No playlists found</p>
-            <p className="text-sm mt-2">
-              Your YouTube playlists will appear here
-            </p>
-          </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
+            <CreatePlaylistButton
+              onClick={() => setIsCreatePlaylistModalOpen(true)}
+            />
             {folders.map((folder) => (
               <Folder
                 key={folder.id}
@@ -184,6 +201,11 @@ export default function FolderView() {
           </div>
         )}
       </div>
+      <CreatePlaylistModal
+        isOpen={isCreatePlaylistModalOpen}
+        onClose={() => setIsCreatePlaylistModalOpen(false)}
+        onCreate={handleCreatePlaylist}
+      />
     </div>
   );
 }
