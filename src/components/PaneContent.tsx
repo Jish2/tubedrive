@@ -2,16 +2,16 @@ import { useState, useMemo, useEffect } from "react";
 import { FolderItem, FileItem } from "../types";
 import Folder from "./Folder";
 import File from "./File";
-import AddVideoButton from "./AddVideoButton";
 import AddVideoModal from "./AddVideoModal";
-import CreatePlaylistButton from "./CreatePlaylistButton";
 import CreatePlaylistModal from "./CreatePlaylistModal";
+import ImportPlaylistModal from "./ImportPlaylistModal";
 import { useYouTubePlaylists } from "../hooks/useYouTubePlaylists";
 import { usePlaylistItems } from "../hooks/usePlaylistItems";
 import { useAuth } from "../contexts/AuthContext";
 import {
   addVideoToPlaylist,
   removeVideoFromPlaylist,
+  addVideosToPlaylist,
 } from "../services/youtubeApi";
 
 interface BreadcrumbItem {
@@ -28,7 +28,7 @@ interface PaneContentProps {
     playlistId: string,
     videoId: string,
     sourcePlaylistId: string,
-    playlistItemId: string,
+    playlistItemId: string
   ) => void;
 }
 
@@ -63,8 +63,14 @@ export default function PaneContent({
   const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
+  const [isImportPlaylistModalOpen, setIsImportPlaylistModalOpen] =
+    useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isMovingVideo, setIsMovingVideo] = useState(false);
+  const [importProgress, setImportProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
 
   const getDragData = (): DragVideoData | undefined => {
     return (window as unknown as { __dragVideoData?: DragVideoData })
@@ -141,16 +147,79 @@ export default function PaneContent({
   const handleCreatePlaylist = async (
     title: string,
     description: string,
-    privacyStatus: "private" | "unlisted" | "public",
+    privacyStatus: "private" | "unlisted" | "public"
   ) => {
     await createPlaylist(title, description, privacyStatus);
+  };
+
+  const handleImportPlaylist = async (
+    playlistId: string,
+    videoIds: string[]
+  ) => {
+    if (!token) {
+      throw new Error("Missing authentication token");
+    }
+
+    setImportProgress({ current: 0, total: videoIds.length });
+    try {
+      await addVideosToPlaylist(token, playlistId, videoIds, (current, total) =>
+        setImportProgress({ current, total })
+      );
+      // Reload playlist items if we're viewing the imported playlist
+      if (currentFolderId === playlistId) {
+        await reloadPlaylistItems();
+      }
+      // Reload playlists to update counts
+      await loadPlaylists();
+    } finally {
+      setImportProgress(null);
+    }
+  };
+
+  const handleCreateAndImportPlaylist = async (
+    title: string,
+    description: string,
+    privacyStatus: "private" | "unlisted" | "public",
+    videoIds: string[]
+  ) => {
+    if (!token) {
+      throw new Error("Missing authentication token");
+    }
+
+    setImportProgress({ current: 0, total: videoIds.length + 1 });
+    try {
+      // Create the playlist first
+      const newPlaylist = await createPlaylist(
+        title,
+        description,
+        privacyStatus
+      );
+      if (!newPlaylist) {
+        throw new Error("Failed to create playlist");
+      }
+      setImportProgress({ current: 1, total: videoIds.length + 1 });
+
+      // Then import videos
+      await addVideosToPlaylist(
+        token,
+        newPlaylist.id,
+        videoIds,
+        (current, total) =>
+          setImportProgress({ current: current + 1, total: total + 1 })
+      );
+
+      // Reload playlists to show the new one
+      await loadPlaylists();
+    } finally {
+      setImportProgress(null);
+    }
   };
 
   const handleFileDrop = async (
     videoId: string,
     sourcePaneId: string,
     sourcePlaylistId: string,
-    playlistItemId: string,
+    playlistItemId: string
   ) => {
     if (
       onFileDrop &&
@@ -165,7 +234,7 @@ export default function PaneContent({
           currentFolderId,
           videoId,
           sourcePlaylistId,
-          playlistItemId,
+          playlistItemId
         );
         // Reload this pane after adding
         await reloadPlaylistItems();
@@ -198,7 +267,7 @@ export default function PaneContent({
       <>
         {/* Toolbar with Breadcrumb */}
         <div className="flex-shrink-0 border-b border-gray-700 bg-gray-900 px-6 py-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-4">
             <nav className="flex items-center gap-2" aria-label="Breadcrumb">
               <button
                 onClick={() => onBreadcrumbClick(-1)}
@@ -247,6 +316,46 @@ export default function PaneContent({
                 </div>
               ))}
             </nav>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsAddVideoModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-white text-sm font-medium"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Add Video
+              </button>
+              <button
+                onClick={() => setIsImportPlaylistModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-white text-sm font-medium"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  />
+                </svg>
+                Import Playlist
+              </button>
+            </div>
           </div>
         </div>
 
@@ -334,7 +443,7 @@ export default function PaneContent({
                 videoId,
                 sourcePaneId,
                 sourcePlaylistId,
-                playlistItemId,
+                playlistItemId
               );
             }
             // Clear global drag data after drop
@@ -343,7 +452,7 @@ export default function PaneContent({
             ).__dragVideoData = null;
           }}
         >
-          {isMovingVideo && (
+          {(isMovingVideo || importProgress) && (
             <div className="absolute inset-0 bg-gray-900/80 flex items-center justify-center z-50">
               <div className="bg-gray-800 rounded-lg p-6 flex flex-col items-center gap-4 border border-gray-700">
                 <svg
@@ -365,7 +474,11 @@ export default function PaneContent({
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                <div className="text-white text-sm">Moving video...</div>
+                <div className="text-white text-sm">
+                  {importProgress
+                    ? `Importing videos... ${importProgress.current}/${importProgress.total}`
+                    : "Moving video..."}
+                </div>
               </div>
             </div>
           )}
@@ -380,7 +493,6 @@ export default function PaneContent({
                 gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
               }}
             >
-              <AddVideoButton onClick={() => setIsAddVideoModalOpen(true)} />
               {files.map((file) => (
                 <File
                   key={file.id}
@@ -399,6 +511,13 @@ export default function PaneContent({
           onAdd={handleAddVideo}
           playlistName={currentFolder.name}
         />
+        <ImportPlaylistModal
+          isOpen={isImportPlaylistModalOpen}
+          onClose={() => setIsImportPlaylistModalOpen(false)}
+          onImport={handleImportPlaylist}
+          playlists={playlists}
+          currentPlaylistId={currentFolderId}
+        />
       </>
     );
   }
@@ -408,8 +527,48 @@ export default function PaneContent({
     <>
       {/* Toolbar */}
       <div className="flex-shrink-0 border-b border-gray-700 bg-gray-900 px-6 py-4">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold mr-6">YouTube Playlists</h1>
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-bold">YouTube Playlists</h1>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsCreatePlaylistModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-white text-sm font-medium"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              Create Playlist
+            </button>
+            <button
+              onClick={() => setIsImportPlaylistModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-white text-sm font-medium"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
+              </svg>
+              Import Playlist
+            </button>
+          </div>
         </div>
       </div>
 
@@ -426,9 +585,6 @@ export default function PaneContent({
               gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
             }}
           >
-            <CreatePlaylistButton
-              onClick={() => setIsCreatePlaylistModalOpen(true)}
-            />
             {folders.map((folder) => (
               <Folder
                 key={folder.id}
@@ -448,6 +604,14 @@ export default function PaneContent({
         isOpen={isCreatePlaylistModalOpen}
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={handleCreatePlaylist}
+      />
+      <ImportPlaylistModal
+        isOpen={isImportPlaylistModalOpen}
+        onClose={() => setIsImportPlaylistModalOpen(false)}
+        onImport={handleImportPlaylist}
+        onCreateAndImport={handleCreateAndImportPlaylist}
+        playlists={playlists}
+        currentPlaylistId={null}
       />
     </>
   );
