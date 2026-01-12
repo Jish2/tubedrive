@@ -9,7 +9,7 @@ interface ImportPlaylistModalProps {
     title: string,
     description: string,
     privacyStatus: "private" | "unlisted" | "public",
-    videoIds: string[]
+    videoIds: string[],
   ) => Promise<void>;
   playlists: YouTubePlaylist[];
   currentPlaylistId?: string | null;
@@ -24,11 +24,10 @@ export default function ImportPlaylistModal({
   currentPlaylistId,
 }: ImportPlaylistModalProps) {
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string>(
-    currentPlaylistId || ""
+    currentPlaylistId || "",
   );
-  const [createNewPlaylist, setCreateNewPlaylist] = useState<boolean>(
-    !currentPlaylistId
-  );
+  const [createNewPlaylist, setCreateNewPlaylist] =
+    useState<boolean>(!currentPlaylistId);
   const [newPlaylistTitle, setNewPlaylistTitle] = useState("");
   const [newPlaylistDescription, setNewPlaylistDescription] = useState("");
   const [newPlaylistPrivacy, setNewPlaylistPrivacy] = useState<
@@ -146,7 +145,7 @@ export default function ImportPlaylistModal({
           newPlaylistTitle.trim(),
           newPlaylistDescription.trim(),
           newPlaylistPrivacy,
-          videoIds
+          videoIds,
         );
       } else {
         await onImport(selectedPlaylistId, videoIds);
@@ -163,7 +162,7 @@ export default function ImportPlaylistModal({
       onClose();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to import playlist"
+        err instanceof Error ? err.message : "Failed to import playlist",
       );
     } finally {
       setIsLoading(false);
@@ -289,7 +288,7 @@ export default function ImportPlaylistModal({
                     value={newPlaylistPrivacy}
                     onChange={(e) =>
                       setNewPlaylistPrivacy(
-                        e.target.value as "private" | "unlisted" | "public"
+                        e.target.value as "private" | "unlisted" | "public",
                       )
                     }
                     disabled={isLoading}

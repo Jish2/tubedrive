@@ -28,7 +28,7 @@ interface PaneContentProps {
     playlistId: string,
     videoId: string,
     sourcePlaylistId: string,
-    playlistItemId: string
+    playlistItemId: string,
   ) => void;
 }
 
@@ -147,14 +147,14 @@ export default function PaneContent({
   const handleCreatePlaylist = async (
     title: string,
     description: string,
-    privacyStatus: "private" | "unlisted" | "public"
+    privacyStatus: "private" | "unlisted" | "public",
   ) => {
     await createPlaylist(title, description, privacyStatus);
   };
 
   const handleImportPlaylist = async (
     playlistId: string,
-    videoIds: string[]
+    videoIds: string[],
   ) => {
     if (!token) {
       throw new Error("Missing authentication token");
@@ -163,7 +163,7 @@ export default function PaneContent({
     setImportProgress({ current: 0, total: videoIds.length });
     try {
       await addVideosToPlaylist(token, playlistId, videoIds, (current, total) =>
-        setImportProgress({ current, total })
+        setImportProgress({ current, total }),
       );
       // Reload playlist items if we're viewing the imported playlist
       if (currentFolderId === playlistId) {
@@ -180,7 +180,7 @@ export default function PaneContent({
     title: string,
     description: string,
     privacyStatus: "private" | "unlisted" | "public",
-    videoIds: string[]
+    videoIds: string[],
   ) => {
     if (!token) {
       throw new Error("Missing authentication token");
@@ -192,7 +192,7 @@ export default function PaneContent({
       const newPlaylist = await createPlaylist(
         title,
         description,
-        privacyStatus
+        privacyStatus,
       );
       if (!newPlaylist) {
         throw new Error("Failed to create playlist");
@@ -205,7 +205,7 @@ export default function PaneContent({
         newPlaylist.id,
         videoIds,
         (current, total) =>
-          setImportProgress({ current: current + 1, total: total + 1 })
+          setImportProgress({ current: current + 1, total: total + 1 }),
       );
 
       // Reload playlists to show the new one
@@ -219,7 +219,7 @@ export default function PaneContent({
     videoId: string,
     sourcePaneId: string,
     sourcePlaylistId: string,
-    playlistItemId: string
+    playlistItemId: string,
   ) => {
     if (
       onFileDrop &&
@@ -234,7 +234,7 @@ export default function PaneContent({
           currentFolderId,
           videoId,
           sourcePlaylistId,
-          playlistItemId
+          playlistItemId,
         );
         // Reload this pane after adding
         await reloadPlaylistItems();
@@ -448,7 +448,7 @@ export default function PaneContent({
                 videoId,
                 sourcePaneId,
                 sourcePlaylistId,
-                playlistItemId
+                playlistItemId,
               );
             }
             // Clear global drag data after drop
