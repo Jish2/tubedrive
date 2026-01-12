@@ -1,4 +1,64 @@
-# React + TypeScript + Vite
+# TubeDrive
+
+A React application that renders Videos and Playlists from a user's YouTube account as Files and Folders.
+
+## Features
+
+- Google OAuth authentication (client-side only)
+- Fetch and manage YouTube playlists
+- Create, update, and delete playlists
+- Add/remove videos from playlists
+
+## Setup
+
+1. Install dependencies:
+```bash
+pnpm install
+```
+
+2. Set up Google OAuth credentials:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select an existing one
+   - Enable the YouTube Data API v3
+   - Go to "Credentials" → "Create Credentials" → "OAuth client ID"
+   - Choose "Web application"
+   - **Authorized JavaScript origins:**
+     - For development: `http://localhost:5173` (or your Vite dev server port)
+     - For production: `https://yourdomain.com`
+   - **Authorized redirect URIs:**
+     - For development: `http://localhost:5173` (or your Vite dev server port)
+     - For production: `https://yourdomain.com`
+   - Copy your Client ID
+
+3. Create a `.env` file in the root directory:
+```bash
+cp .env.example .env
+```
+
+4. Add your Google Client ID to `.env`:
+```
+VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
+```
+
+5. Start the development server:
+```bash
+pnpm dev
+```
+
+## Usage
+
+After logging in with Google, you can use the YouTube API functions from `src/services/youtubeApi.ts` to:
+- Fetch user playlists: `fetchUserPlaylists(accessToken)`
+- Fetch playlist items: `fetchPlaylistItems(accessToken, playlistId)`
+- Create playlists: `createPlaylist(accessToken, title, description, privacyStatus)`
+- Update playlists: `updatePlaylist(accessToken, playlistId, title, description)`
+- Add videos to playlists: `addVideoToPlaylist(accessToken, playlistId, videoId)`
+- Remove videos from playlists: `removeVideoFromPlaylist(accessToken, playlistItemId)`
+- Delete playlists: `deletePlaylist(accessToken, playlistId)`
+
+You can also use the `useYouTubePlaylists` hook from `src/hooks/useYouTubePlaylists.ts` for a React-friendly interface.
+
+---
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
