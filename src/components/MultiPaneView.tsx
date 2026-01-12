@@ -41,7 +41,17 @@ function loadPanesFromURL(
     const paneKey = `pane-${paneIndex}`;
     const paneValue = params.get(paneKey);
 
+    // If parameter doesn't exist, skip it
     if (paneValue === null) continue;
+
+    // Empty string means empty breadcrumb (pane exists but is at root)
+    if (paneValue === "") {
+      panes.push({
+        id: `pane-${paneIndex}`,
+        breadcrumb: [],
+      });
+      continue;
+    }
 
     // Parse breadcrumb path (e.g., "jazz house" or "parent/child")
     const breadcrumbNames = paneValue
@@ -117,6 +127,14 @@ function savePanesToURL(panes: PaneState[]) {
     url.searchParams.delete("panes");
 
     // Add new pane parameters in readable format
+    // Only add panes if there's more than one, or if there's one with breadcrumb
+    // If there's exactly one empty pane, don't add anything (default state)
+    if (panes.length === 1 && panes[0].breadcrumb.length === 0) {
+      // Single empty pane - don't add to URL (default state)
+      window.history.replaceState({}, "", url.toString());
+      return;
+    }
+
     panes.forEach((pane, index) => {
       const paneIndex = index + 1;
       const paneKey = `pane-${paneIndex}`;
@@ -127,8 +145,10 @@ function savePanesToURL(panes: PaneState[]) {
           .map((item) => encodeURIComponent(item.name))
           .join("/");
         url.searchParams.set(paneKey, breadcrumbPath);
+      } else {
+        // Empty pane - store as empty string to indicate pane exists
+        url.searchParams.set(paneKey, "");
       }
-      // Empty panes are not added to URL to keep it clean
     });
 
     window.history.replaceState({}, "", url.toString());
