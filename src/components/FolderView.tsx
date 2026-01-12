@@ -1,120 +1,33 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { FolderItem, FileItem } from '../types';
 import Folder from './Folder';
 import File from './File';
+import { useYouTubePlaylists } from '../hooks/useYouTubePlaylists';
+import { usePlaylistItems } from '../hooks/usePlaylistItems';
 
 export default function FolderView() {
-  const [folders, setFolders] = useState<FolderItem[]>([]);
-  const [files, setFiles] = useState<FileItem[]>([]);
+  const { playlists, loading: playlistsLoading } = useYouTubePlaylists();
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-  const [newFolderName, setNewFolderName] = useState('');
-  const [newFileName, setNewFileName] = useState('');
-  const [showNewFolderInput, setShowNewFolderInput] = useState(false);
-  const [showNewFileInput, setShowNewFileInput] = useState(false);
+  const { items: playlistItems, loading: itemsLoading } = usePlaylistItems(currentFolderId);
 
-  const createFolder = () => {
-    if (newFolderName.trim()) {
-      const newFolder: FolderItem = {
-        id: `folder-${Date.now()}`,
-        name: newFolderName.trim(),
-        type: 'folder',
-        files: [],
-      };
-      setFolders([...folders, newFolder]);
-      setNewFolderName('');
-      setShowNewFolderInput(false);
-    }
-  };
+  // Convert YouTube playlists to FolderItem format
+  const folders = useMemo<FolderItem[]>(() => {
+    return playlists.map((playlist) => ({
+      id: playlist.id,
+      name: playlist.snippet.title,
+      type: 'folder' as const,
+      files: [], // Files will be loaded when folder is opened
+    }));
+  }, [playlists]);
 
-  const createFile = () => {
-    if (newFileName.trim()) {
-      const newFile: FileItem = {
-        id: `file-${Date.now()}`,
-        name: newFileName.trim(),
-        type: 'file',
-      };
-      setFiles([...files, newFile]);
-      setNewFileName('');
-      setShowNewFileInput(false);
-    }
-  };
-
-  const deleteFolder = (folderId: string) => {
-    setFolders(folders.filter((f) => f.id !== folderId));
-  };
-
-  const deleteFile = (fileId: string) => {
-    // Remove from root files
-    setFiles(files.filter((f) => f.id !== fileId));
-    // Remove from all folders
-    setFolders(
-      folders.map((folder) => ({
-        ...folder,
-        files: folder.files.filter((f) => f.id !== fileId),
-      }))
-    );
-  };
-
-  const handleFileDrop = (folderId: string, fileId: string) => {
-    // Find the file being moved
-    const fileToMove = files.find((f) => f.id === fileId);
-    if (!fileToMove) {
-      // Check if it's in a folder
-      const sourceFolder = folders.find((f) => f.files.some((file) => file.id === fileId));
-      if (sourceFolder) {
-        const fileToMove = sourceFolder.files.find((f) => f.id === fileId);
-        if (fileToMove) {
-          // Remove from source folder
-          setFolders(
-            folders.map((folder) => {
-              if (folder.id === sourceFolder.id) {
-                return {
-                  ...folder,
-                  files: folder.files.filter((f) => f.id !== fileId),
-                };
-              }
-              if (folder.id === folderId) {
-                return {
-                  ...folder,
-                  files: [...folder.files, fileToMove],
-                };
-              }
-              return folder;
-            })
-          );
-        }
-      }
-      return;
-    }
-
-    // Move from root to folder
-    setFiles(files.filter((f) => f.id !== fileId));
-    setFolders(
-      folders.map((folder) => {
-        if (folder.id === folderId) {
-          return {
-            ...folder,
-            files: [...folder.files, fileToMove],
-          };
-        }
-        return folder;
-      })
-    );
-  };
-
-  const handleFileDeleteFromFolder = (folderId: string, fileId: string) => {
-    setFolders(
-      folders.map((folder) => {
-        if (folder.id === folderId) {
-          return {
-            ...folder,
-            files: folder.files.filter((f) => f.id !== fileId),
-          };
-        }
-        return folder;
-      })
-    );
-  };
+  // Convert YouTube playlist items to FileItem format
+  const files = useMemo<FileItem[]>(() => {
+    return playlistItems.map((item) => ({
+      id: item.id,
+      name: item.snippet.title,
+      type: 'file' as const,
+    }));
+  }, [playlistItems]);
 
   const handleFolderClick = (folderId: string) => {
     setCurrentFolderId(folderId);
@@ -125,43 +38,6 @@ export default function FolderView() {
   };
 
   const currentFolder = currentFolderId ? folders.find((f) => f.id === currentFolderId) : null;
-
-  const handleRootDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const fileId = e.dataTransfer.getData('text/plain');
-    const type = e.dataTransfer.getData('type');
-
-    if (type === 'file' && fileId) {
-      // Find the file in folders
-      const sourceFolder = folders.find((f) => f.files.some((file) => file.id === fileId));
-      if (sourceFolder) {
-        const fileToMove = sourceFolder.files.find((f) => f.id === fileId);
-        if (fileToMove) {
-          // Move from folder to root
-          setFolders(
-            folders.map((folder) => {
-              if (folder.id === sourceFolder.id) {
-                return {
-                  ...folder,
-                  files: folder.files.filter((f) => f.id !== fileId),
-                };
-              }
-              return folder;
-            })
-          );
-          setFiles([...files, fileToMove]);
-        }
-      }
-    }
-  };
-
-  const handleRootDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    const type = e.dataTransfer.getData('type');
-    if (type === 'file') {
-      e.dataTransfer.dropEffect = 'move';
-    }
-  };
 
   // When viewing a folder, show its contents
   if (currentFolder) {
@@ -189,26 +65,25 @@ export default function FolderView() {
         </div>
 
         {/* Grid area - takes remaining space */}
-        <div
-          onDragOver={handleRootDragOver}
-          onDrop={handleRootDrop}
-          className="flex-1 overflow-auto p-6 bg-gray-800"
-        >
-          {currentFolder.files.length === 0 ? (
+        <div className="flex-1 overflow-auto p-6 bg-gray-800">
+          {itemsLoading ? (
+            <div className="text-gray-500 text-center py-16 h-full flex flex-col items-center justify-center">
+              <div className="text-white">Loading videos...</div>
+            </div>
+          ) : files.length === 0 ? (
             <div className="text-gray-500 text-center py-16 h-full flex flex-col items-center justify-center">
               <svg className="w-24 h-24 mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p className="text-lg">This folder is empty</p>
-              <p className="text-sm mt-2">Drag files here from the root view</p>
+              <p className="text-lg">This playlist is empty</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
-              {currentFolder.files.map((file) => (
+              {files.map((file) => (
                 <File
                   key={file.id}
                   file={file}
-                  onDelete={(fileId) => handleFileDeleteFromFolder(currentFolder.id, fileId)}
+                  onDelete={() => {}} // Disable delete for now
                 />
               ))}
             </div>
@@ -224,127 +99,34 @@ export default function FolderView() {
       {/* Toolbar */}
       <div className="flex-shrink-0 border-b border-gray-700 bg-gray-900 px-6 py-4">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold mr-6">Folder Manager</h1>
-
-          {/* Action buttons */}
-          {!showNewFolderInput ? (
-            <button
-              onClick={() => setShowNewFolderInput(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              New Folder
-            </button>
-          ) : (
-            <div className="flex gap-2 items-center">
-              <input
-                type="text"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    createFolder();
-                  } else if (e.key === 'Escape') {
-                    setShowNewFolderInput(false);
-                    setNewFolderName('');
-                  }
-                }}
-                placeholder="Folder name"
-                className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                autoFocus
-              />
-              <button
-                onClick={createFolder}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
-              >
-                Create
-              </button>
-              <button
-                onClick={() => {
-                  setShowNewFolderInput(false);
-                  setNewFolderName('');
-                }}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-
-          {!showNewFileInput ? (
-            <button
-              onClick={() => setShowNewFileInput(true)}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              New File
-            </button>
-          ) : (
-            <div className="flex gap-2 items-center">
-              <input
-                type="text"
-                value={newFileName}
-                onChange={(e) => setNewFileName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    createFile();
-                  } else if (e.key === 'Escape') {
-                    setShowNewFileInput(false);
-                    setNewFileName('');
-                  }
-                }}
-                placeholder="File name"
-                className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                autoFocus
-              />
-              <button
-                onClick={createFile}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
-              >
-                Create
-              </button>
-              <button
-                onClick={() => {
-                  setShowNewFileInput(false);
-                  setNewFileName('');
-                }}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
+          <h1 className="text-2xl font-bold mr-6">YouTube Playlists</h1>
         </div>
       </div>
 
       {/* Grid area - takes remaining space */}
-      <div
-        onDragOver={handleRootDragOver}
-        onDrop={handleRootDrop}
-        className="flex-1 overflow-auto p-6 bg-gray-800"
-      >
-        {folders.length === 0 && files.length === 0 ? (
+      <div className="flex-1 overflow-auto p-6 bg-gray-800">
+        {playlistsLoading ? (
           <div className="text-gray-500 text-center py-16 h-full flex flex-col items-center justify-center">
-            <p className="text-lg">No folders or files yet</p>
-            <p className="text-sm mt-2">Create a folder or file to get started</p>
+            <div className="text-white">Loading playlists...</div>
+          </div>
+        ) : folders.length === 0 ? (
+          <div className="text-gray-500 text-center py-16 h-full flex flex-col items-center justify-center">
+            <p className="text-lg">No playlists found</p>
+            <p className="text-sm mt-2">Your YouTube playlists will appear here</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
             {folders.map((folder) => (
               <Folder
                 key={folder.id}
-                folder={folder}
-                onDelete={deleteFolder}
-                onFileDrop={handleFileDrop}
+                folder={{
+                  ...folder,
+                  files: [], // Don't show file count badge for now
+                }}
+                onDelete={() => {}} // Disable delete for now
+                onFileDrop={() => {}} // Disable drag and drop for now
                 onClick={handleFolderClick}
               />
-            ))}
-            {files.map((file) => (
-              <File key={file.id} file={file} onDelete={deleteFile} />
             ))}
           </div>
         )}

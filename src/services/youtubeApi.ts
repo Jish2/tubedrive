@@ -118,6 +118,25 @@ export async function fetchPlaylistItems(
 }
 
 /**
+ * Fetch all items in a playlist (handles pagination automatically)
+ */
+export async function fetchAllPlaylistItems(
+  accessToken: string,
+  playlistId: string
+): Promise<YouTubePlaylistItem[]> {
+  const allItems: YouTubePlaylistItem[] = [];
+  let pageToken: string | undefined;
+
+  do {
+    const response = await fetchPlaylistItems(accessToken, playlistId, 50, pageToken);
+    allItems.push(...response.items);
+    pageToken = response.nextPageToken;
+  } while (pageToken);
+
+  return allItems;
+}
+
+/**
  * Create a new playlist
  */
 export async function createPlaylist(
