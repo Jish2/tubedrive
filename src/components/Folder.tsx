@@ -58,6 +58,7 @@ export default function Folder({ folder, onDelete, onFileDrop, onClick }: Folder
 
   return (
     <div
+      draggable={false}
       className={`group relative aspect-square bg-gray-800 rounded-lg hover:bg-gray-700 cursor-pointer border-2 transition-all flex flex-col items-stretch p-2 ${
         isDragOver 
           ? 'border-blue-500 bg-blue-900/70 scale-105 shadow-2xl shadow-blue-500/50 ring-4 ring-blue-500/30' 
@@ -80,6 +81,7 @@ export default function Folder({ folder, onDelete, onFileDrop, onClick }: Folder
       <div className="w-full flex-1 flex items-center justify-center mb-2 relative min-h-0">
         {folder.thumbnailUrl && !thumbnailError ? (
           <img
+            draggable={false}
             src={folder.thumbnailUrl}
             alt={folder.name}
             className="w-full h-full object-cover rounded"

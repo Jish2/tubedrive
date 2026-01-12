@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import {
   fetchAllPlaylistItems,
   type YouTubePlaylistItem,
-} from '../services/youtubeApi';
+} from "../services/youtubeApi";
 
 export function usePlaylistItems(playlistId: string | null) {
   const { token, isAuthenticated } = useAuth();
@@ -23,8 +23,10 @@ export function usePlaylistItems(playlistId: string | null) {
       const allItems = await fetchAllPlaylistItems(token, playlistId);
       setItems(allItems);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load playlist items');
-      console.error('Error loading playlist items:', err);
+      setError(
+        err instanceof Error ? err.message : "Failed to load playlist items"
+      );
+      console.error("Error loading playlist items:", err);
       setItems([]);
     } finally {
       setLoading(false);
@@ -42,4 +44,3 @@ export function usePlaylistItems(playlistId: string | null) {
     reload: loadItems,
   };
 }
-

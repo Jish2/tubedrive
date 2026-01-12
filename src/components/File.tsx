@@ -4,10 +4,11 @@ import { FileItem } from '../types';
 interface FileProps {
   file: FileItem;
   paneId: string;
+  playlistId: string;
   onDelete: (id: string) => void;
 }
 
-export default function File({ file, paneId, onDelete }: FileProps) {
+export default function File({ file, paneId, playlistId, onDelete }: FileProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [thumbnailError, setThumbnailError] = useState(false);
 
@@ -21,10 +22,20 @@ export default function File({ file, paneId, onDelete }: FileProps) {
       e.dataTransfer.setData('videoId', file.videoId);
     }
     e.dataTransfer.setData('sourcePaneId', paneId);
+    e.dataTransfer.setData('sourcePlaylistId', playlistId);
+
+    // Also store drag data globally for reliable access during dragover
+    (window as any).__dragVideoData = {
+      videoId: file.videoId,
+      playlistItemId: file.id,
+      sourcePaneId: paneId,
+      sourcePlaylistId: playlistId,
+    };
   };
 
   const handleDragEnd = () => {
     setIsDragging(false);
+    (window as any).__dragVideoData = null;
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -46,10 +57,12 @@ export default function File({ file, paneId, onDelete }: FileProps) {
       <div className="w-full flex-1 flex items-center justify-center mb-2 relative min-h-0">
         {file.thumbnailUrl && !thumbnailError ? (
           <img
+            draggable={false}
             src={file.thumbnailUrl}
             alt={file.name}
             className="w-full h-full object-cover rounded"
             onError={() => setThumbnailError(true)}
+            onDragStart={(e) => e.preventDefault()}
           />
         ) : (
           <svg

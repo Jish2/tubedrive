@@ -9,15 +9,30 @@ import CreatePlaylistModal from "./CreatePlaylistModal";
 import { useYouTubePlaylists } from "../hooks/useYouTubePlaylists";
 import { usePlaylistItems } from "../hooks/usePlaylistItems";
 import { useAuth } from "../contexts/AuthContext";
-import { addVideoToPlaylist, removeVideoFromPlaylist } from "../services/youtubeApi";
+import {
+  addVideoToPlaylist,
+  removeVideoFromPlaylist,
+} from "../services/youtubeApi";
 
 interface PaneContentProps {
   paneId: string;
   currentFolderId: string | null;
   onFolderClick: (folderId: string) => void;
   onBackClick: () => void;
-  onFileDrop?: (playlistId: string, videoId: string) => void;
+  onFileDrop?: (
+    playlistId: string,
+    videoId: string,
+    sourcePlaylistId: string,
+    playlistItemId: string
+  ) => void;
 }
+
+type DragVideoData = {
+  videoId?: string;
+  playlistItemId?: string;
+  sourcePaneId?: string;
+  sourcePlaylistId?: string;
+};
 
 export default function PaneContent({
   paneId,
@@ -30,6 +45,7 @@ export default function PaneContent({
     playlists,
     loading: playlistsLoading,
     createPlaylist,
+    loadPlaylists,
   } = useYouTubePlaylists();
   const { token } = useAuth();
   const {
@@ -40,19 +56,31 @@ export default function PaneContent({
   const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const getDragData = (): DragVideoData | undefined => {
+    return (window as unknown as { __dragVideoData?: DragVideoData })
+      .__dragVideoData;
+  };
 
   // Listen for reload events
   useEffect(() => {
     const handleReload = (e: CustomEvent) => {
-      if (currentFolderId && e.detail?.playlistId === currentFolderId) {
+      const playlistId = e.detail?.playlistId;
+      // Reload if this pane is viewing the playlist that was modified
+      if (currentFolderId && playlistId === currentFolderId) {
         reloadPlaylistItems();
       }
+      // Also reload playlists if we're at root view (to update playlist counts)
+      if (!currentFolderId && playlistId) {
+        loadPlaylists();
+      }
     };
-    window.addEventListener('reloadPane', handleReload as EventListener);
+    window.addEventListener("reloadPane", handleReload as EventListener);
     return () => {
-      window.removeEventListener('reloadPane', handleReload as EventListener);
+      window.removeEventListener("reloadPane", handleReload as EventListener);
     };
-  }, [currentFolderId, reloadPlaylistItems]);
+  }, [currentFolderId, reloadPlaylistItems, loadPlaylists]);
 
   // Convert YouTube playlists to FolderItem format
   const folders = useMemo<FolderItem[]>(() => {
@@ -103,11 +131,32 @@ export default function PaneContent({
     await createPlaylist(title, description, privacyStatus);
   };
 
-  const handleFileDrop = async (videoId: string, sourcePaneId: string) => {
-    if (onFileDrop && currentFolderId && sourcePaneId !== paneId) {
-      await onFileDrop(currentFolderId, videoId);
-      // Reload this pane after adding
-      await reloadPlaylistItems();
+  const handleFileDrop = async (
+    videoId: string,
+    sourcePaneId: string,
+    sourcePlaylistId: string,
+    playlistItemId: string
+  ) => {
+    if (
+      onFileDrop &&
+      currentFolderId &&
+      sourcePaneId !== paneId &&
+      sourcePlaylistId !== currentFolderId
+    ) {
+      try {
+        // Add to target playlist
+        await onFileDrop(
+          currentFolderId,
+          videoId,
+          sourcePlaylistId,
+          playlistItemId
+        );
+        // Reload this pane after adding
+        await reloadPlaylistItems();
+      } catch (error) {
+        console.error("Failed to move video:", error);
+        throw error;
+      }
     }
   };
 
@@ -172,30 +221,95 @@ export default function PaneContent({
 
         {/* Grid area */}
         <div
-          className="flex-1 overflow-auto p-6 bg-gray-800"
+          className={`flex-1 overflow-auto p-6 transition-all duration-200 ${
+            isDragOver
+              ? "bg-blue-900/50 border-4 border-blue-400 border-dashed ring-4 ring-blue-500/50"
+              : "bg-gray-800"
+          }`}
+          onDragEnter={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            // Use global drag data (set in File drag start) because getData is unreliable during drag
+            const dragData = getDragData();
+            if (
+              dragData?.videoId &&
+              dragData?.sourcePaneId &&
+              dragData.sourcePaneId !== paneId &&
+              currentFolderId &&
+              dragData.sourcePlaylistId &&
+              dragData.sourcePlaylistId !== currentFolderId
+            ) {
+              setIsDragOver(true);
+            }
+          }}
           onDragOver={(e) => {
             e.preventDefault();
-            const type = e.dataTransfer.getData("type");
-            if (type === "video") {
+            e.stopPropagation();
+            const dragData = getDragData();
+            if (
+              dragData?.videoId &&
+              dragData?.sourcePaneId &&
+              dragData.sourcePaneId !== paneId &&
+              currentFolderId &&
+              dragData.sourcePlaylistId &&
+              dragData.sourcePlaylistId !== currentFolderId
+            ) {
               e.dataTransfer.dropEffect = "move";
+              setIsDragOver(true);
+            } else {
+              e.dataTransfer.dropEffect = "none";
+              setIsDragOver(false);
+            }
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            // Only set drag over to false if we're actually leaving the element
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX;
+            const y = e.clientY;
+            if (
+              x < rect.left ||
+              x > rect.right ||
+              y < rect.top ||
+              y > rect.bottom
+            ) {
+              setIsDragOver(false);
             }
           }}
           onDrop={async (e) => {
             e.preventDefault();
-            const videoId = e.dataTransfer.getData("videoId");
-            const sourcePaneId = e.dataTransfer.getData("sourcePaneId");
-            const playlistItemId = e.dataTransfer.getData("playlistItemId");
-            if (videoId && sourcePaneId && sourcePaneId !== paneId && currentFolderId) {
-              await handleFileDrop(videoId, sourcePaneId);
-              // Remove from source playlist if it was dragged from another pane
-              if (playlistItemId && token) {
-                try {
-                  await removeVideoFromPlaylist(token, playlistItemId);
-                } catch (error) {
-                  console.error("Failed to remove video from source:", error);
-                }
-              }
+            setIsDragOver(false);
+            const dragData = getDragData() || {};
+            const videoId =
+              dragData.videoId || e.dataTransfer.getData("videoId");
+            const sourcePaneId =
+              dragData.sourcePaneId || e.dataTransfer.getData("sourcePaneId");
+            const sourcePlaylistId =
+              dragData.sourcePlaylistId ||
+              e.dataTransfer.getData("sourcePlaylistId");
+            const playlistItemId =
+              dragData.playlistItemId ||
+              e.dataTransfer.getData("playlistItemId");
+
+            if (
+              videoId &&
+              sourcePaneId &&
+              sourcePaneId !== paneId &&
+              currentFolderId &&
+              sourcePlaylistId &&
+              sourcePlaylistId !== currentFolderId
+            ) {
+              await handleFileDrop(
+                videoId,
+                sourcePaneId,
+                sourcePlaylistId,
+                playlistItemId
+              );
             }
+            // Clear global drag data after drop
+            (
+              window as unknown as { __dragVideoData?: DragVideoData | null }
+            ).__dragVideoData = null;
           }}
         >
           {itemsLoading ? (
@@ -203,13 +317,19 @@ export default function PaneContent({
               <div className="text-white">Loading videos...</div>
             </div>
           ) : (
-            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }}>
+            <div
+              className="grid gap-4"
+              style={{
+                gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+              }}
+            >
               <AddVideoButton onClick={() => setIsAddVideoModalOpen(true)} />
               {files.map((file) => (
                 <File
                   key={file.id}
                   file={file}
                   paneId={paneId}
+                  playlistId={currentFolderId!}
                   onDelete={() => handleFileDelete(file.id)}
                 />
               ))}
@@ -243,7 +363,12 @@ export default function PaneContent({
             <div className="text-white">Loading playlists...</div>
           </div>
         ) : (
-          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }}>
+          <div
+            className="grid gap-4"
+            style={{
+              gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+            }}
+          >
             <CreatePlaylistButton
               onClick={() => setIsCreatePlaylistModalOpen(true)}
             />
@@ -270,4 +395,3 @@ export default function PaneContent({
     </>
   );
 }
-

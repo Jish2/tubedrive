@@ -1,4 +1,4 @@
-import PaneContent from './PaneContent';
+import PaneContent from "./PaneContent";
 
 interface PaneProps {
   paneId: string;
@@ -6,7 +6,12 @@ interface PaneProps {
   onFolderClick: (folderId: string) => void;
   onBackClick: () => void;
   onClose: () => void;
-  onFileDrop?: (playlistId: string, videoId: string) => void;
+  onFileDrop?: (
+    playlistId: string,
+    videoId: string,
+    sourcePlaylistId: string,
+    playlistItemId: string
+  ) => void;
 }
 
 export default function Pane({
@@ -18,7 +23,15 @@ export default function Pane({
   onFileDrop,
 }: PaneProps) {
   return (
-    <div className="w-full h-full flex flex-col bg-gray-900 overflow-hidden">
+    <div
+      className="w-full h-full flex flex-col bg-gray-900 overflow-hidden"
+      onDragOver={(e) => {
+        // Allow drag over on the entire pane
+        if (e.dataTransfer.types.includes("videoId")) {
+          e.preventDefault();
+        }
+      }}
+    >
       <PaneContent
         paneId={paneId}
         currentFolderId={currentFolderId}
@@ -29,4 +42,3 @@ export default function Pane({
     </div>
   );
 }
-

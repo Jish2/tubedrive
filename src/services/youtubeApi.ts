@@ -1,4 +1,4 @@
-const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
+const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
 
 export interface YouTubePlaylist {
   id: string;
@@ -61,13 +61,13 @@ export async function fetchUserPlaylists(
   pageToken?: string
 ): Promise<YouTubePlaylistResponse> {
   const params = new URLSearchParams({
-    part: 'snippet,contentDetails',
-    mine: 'true',
+    part: "snippet,contentDetails",
+    mine: "true",
     maxResults: maxResults.toString(),
   });
 
   if (pageToken) {
-    params.append('pageToken', pageToken);
+    params.append("pageToken", pageToken);
   }
 
   const response = await fetch(`${YOUTUBE_API_BASE}/playlists?${params}`, {
@@ -77,8 +77,14 @@ export async function fetchUserPlaylists(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(`Failed to fetch playlists: ${error.error?.message || response.statusText}`);
+    const error = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(
+      `Failed to fetch playlists: ${
+        error.error?.message || response.statusText
+      }`
+    );
   }
 
   return response.json();
@@ -94,13 +100,13 @@ export async function fetchPlaylistItems(
   pageToken?: string
 ): Promise<YouTubePlaylistItemsResponse> {
   const params = new URLSearchParams({
-    part: 'snippet',
+    part: "snippet",
     playlistId,
     maxResults: maxResults.toString(),
   });
 
   if (pageToken) {
-    params.append('pageToken', pageToken);
+    params.append("pageToken", pageToken);
   }
 
   const response = await fetch(`${YOUTUBE_API_BASE}/playlistItems?${params}`, {
@@ -110,8 +116,14 @@ export async function fetchPlaylistItems(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(`Failed to fetch playlist items: ${error.error?.message || response.statusText}`);
+    const error = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(
+      `Failed to fetch playlist items: ${
+        error.error?.message || response.statusText
+      }`
+    );
   }
 
   return response.json();
@@ -128,7 +140,12 @@ export async function fetchAllPlaylistItems(
   let pageToken: string | undefined;
 
   do {
-    const response = await fetchPlaylistItems(accessToken, playlistId, 50, pageToken);
+    const response = await fetchPlaylistItems(
+      accessToken,
+      playlistId,
+      50,
+      pageToken
+    );
     allItems.push(...response.items);
     pageToken = response.nextPageToken;
   } while (pageToken);
@@ -142,29 +159,38 @@ export async function fetchAllPlaylistItems(
 export async function createPlaylist(
   accessToken: string,
   title: string,
-  description: string = '',
-  privacyStatus: 'private' | 'unlisted' | 'public' = 'private'
+  description: string = "",
+  privacyStatus: "private" | "unlisted" | "public" = "private"
 ): Promise<YouTubePlaylist> {
-  const response = await fetch(`${YOUTUBE_API_BASE}/playlists?part=snippet,status`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      snippet: {
-        title,
-        description,
+  const response = await fetch(
+    `${YOUTUBE_API_BASE}/playlists?part=snippet,status`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       },
-      status: {
-        privacyStatus,
-      },
-    }),
-  });
+      body: JSON.stringify({
+        snippet: {
+          title,
+          description,
+        },
+        status: {
+          privacyStatus,
+        },
+      }),
+    }
+  );
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(`Failed to create playlist: ${error.error?.message || response.statusText}`);
+    const error = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(
+      `Failed to create playlist: ${
+        error.error?.message || response.statusText
+      }`
+    );
   }
 
   const data = await response.json();
@@ -178,13 +204,13 @@ export async function updatePlaylist(
   accessToken: string,
   playlistId: string,
   title: string,
-  description: string = ''
+  description: string = ""
 ): Promise<YouTubePlaylist> {
   const response = await fetch(`${YOUTUBE_API_BASE}/playlists?part=snippet`, {
-    method: 'PUT',
+    method: "PUT",
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       id: playlistId,
@@ -196,8 +222,14 @@ export async function updatePlaylist(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(`Failed to update playlist: ${error.error?.message || response.statusText}`);
+    const error = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(
+      `Failed to update playlist: ${
+        error.error?.message || response.statusText
+      }`
+    );
   }
 
   const data = await response.json();
@@ -212,26 +244,35 @@ export async function addVideoToPlaylist(
   playlistId: string,
   videoId: string
 ): Promise<YouTubePlaylistItem> {
-  const response = await fetch(`${YOUTUBE_API_BASE}/playlistItems?part=snippet`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      snippet: {
-        playlistId,
-        resourceId: {
-          kind: 'youtube#video',
-          videoId,
-        },
+  const response = await fetch(
+    `${YOUTUBE_API_BASE}/playlistItems?part=snippet`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       },
-    }),
-  });
+      body: JSON.stringify({
+        snippet: {
+          playlistId,
+          resourceId: {
+            kind: "youtube#video",
+            videoId,
+          },
+        },
+      }),
+    }
+  );
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(`Failed to add video to playlist: ${error.error?.message || response.statusText}`);
+    const error = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(
+      `Failed to add video to playlist: ${
+        error.error?.message || response.statusText
+      }`
+    );
   }
 
   const data = await response.json();
@@ -248,7 +289,7 @@ export async function removeVideoFromPlaylist(
   const response = await fetch(
     `${YOUTUBE_API_BASE}/playlistItems?id=${playlistItemId}`,
     {
-      method: 'DELETE',
+      method: "DELETE",
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -256,8 +297,14 @@ export async function removeVideoFromPlaylist(
   );
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(`Failed to remove video from playlist: ${error.error?.message || response.statusText}`);
+    const error = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(
+      `Failed to remove video from playlist: ${
+        error.error?.message || response.statusText
+      }`
+    );
   }
 }
 
@@ -271,7 +318,7 @@ export async function deletePlaylist(
   const response = await fetch(
     `${YOUTUBE_API_BASE}/playlists?id=${playlistId}`,
     {
-      method: 'DELETE',
+      method: "DELETE",
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -279,8 +326,13 @@ export async function deletePlaylist(
   );
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(`Failed to delete playlist: ${error.error?.message || response.statusText}`);
+    const error = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
+    throw new Error(
+      `Failed to delete playlist: ${
+        error.error?.message || response.statusText
+      }`
+    );
   }
 }
-
