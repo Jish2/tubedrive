@@ -6,7 +6,7 @@ interface CreatePlaylistModalProps {
   onCreate: (
     title: string,
     description: string,
-    privacyStatus: "private" | "unlisted" | "public"
+    privacyStatus: "private" | "unlisted" | "public",
   ) => Promise<void>;
 }
 
@@ -43,7 +43,7 @@ export default function CreatePlaylistModal({
       onClose();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to create playlist"
+        err instanceof Error ? err.message : "Failed to create playlist",
       );
     } finally {
       setIsLoading(false);
@@ -143,7 +143,7 @@ export default function CreatePlaylistModal({
               value={privacyStatus}
               onChange={(e) =>
                 setPrivacyStatus(
-                  e.target.value as "private" | "unlisted" | "public"
+                  e.target.value as "private" | "unlisted" | "public",
                 )
               }
               disabled={isLoading}

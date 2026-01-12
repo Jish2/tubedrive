@@ -1,7 +1,7 @@
 export interface FileItem {
   id: string;
   name: string;
-  type: 'file';
+  type: "file";
   thumbnailUrl?: string;
   videoId?: string;
 }
@@ -9,10 +9,9 @@ export interface FileItem {
 export interface FolderItem {
   id: string;
   name: string;
-  type: 'folder';
+  type: "folder";
   files: FileItem[];
   thumbnailUrl?: string;
 }
 
 export type Item = FileItem | FolderItem;
-

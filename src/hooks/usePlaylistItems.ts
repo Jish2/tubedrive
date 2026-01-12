@@ -24,7 +24,7 @@ export function usePlaylistItems(playlistId: string | null) {
       setItems(allItems);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to load playlist items"
+        err instanceof Error ? err.message : "Failed to load playlist items",
       );
       console.error("Error loading playlist items:", err);
       setItems([]);

@@ -12,11 +12,13 @@ A React application that renders Videos and Playlists from a user's YouTube acco
 ## Setup
 
 1. Install dependencies:
+
 ```bash
 pnpm install
 ```
 
 2. Set up Google OAuth credentials:
+
    - Go to [Google Cloud Console](https://console.cloud.google.com/)
    - Create a new project or select an existing one
    - Enable the YouTube Data API v3
@@ -31,16 +33,19 @@ pnpm install
    - Copy your Client ID
 
 3. Create a `.env` file in the root directory:
+
 ```bash
 cp .env.example .env
 ```
 
 4. Add your Google Client ID to `.env`:
+
 ```
 VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
 ```
 
 5. Start the development server:
+
 ```bash
 pnpm dev
 ```
@@ -48,6 +53,7 @@ pnpm dev
 ## Usage
 
 After logging in with Google, you can use the YouTube API functions from `src/services/youtubeApi.ts` to:
+
 - Fetch user playlists: `fetchUserPlaylists(accessToken)`
 - Fetch playlist items: `fetchPlaylistItems(accessToken, playlistId)`
 - Create playlists: `createPlaylist(accessToken, title, description, privacyStatus)`
@@ -84,31 +90,31 @@ export default tseslint.config({
   languageOptions: {
     // other options...
     parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
+      project: ["./tsconfig.node.json", "./tsconfig.app.json"],
       tsconfigRootDir: import.meta.dirname,
     },
   },
-})
+});
 ```
 
 You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
 ```js
 // eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+import reactX from "eslint-plugin-react-x";
+import reactDom from "eslint-plugin-react-dom";
 
 export default tseslint.config({
   plugins: {
     // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
+    "react-x": reactX,
+    "react-dom": reactDom,
   },
   rules: {
     // other rules...
     // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
+    ...reactX.configs["recommended-typescript"].rules,
     ...reactDom.configs.recommended.rules,
   },
-})
+});
 ```

@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             headers: {
               Authorization: `Bearer ${tokenResponse.access_token}`,
             },
-          }
+          },
         );
 
         if (userInfoResponse.ok) {

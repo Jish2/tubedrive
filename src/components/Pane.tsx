@@ -14,7 +14,7 @@ interface PaneProps {
     playlistId: string,
     videoId: string,
     sourcePlaylistId: string,
-    playlistItemId: string
+    playlistItemId: string,
   ) => void;
 }
 

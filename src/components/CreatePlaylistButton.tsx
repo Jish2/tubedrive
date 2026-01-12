@@ -2,7 +2,9 @@ interface CreatePlaylistButtonProps {
   onClick: () => void;
 }
 
-export default function CreatePlaylistButton({ onClick }: CreatePlaylistButtonProps) {
+export default function CreatePlaylistButton({
+  onClick,
+}: CreatePlaylistButtonProps) {
   return (
     <div
       onClick={onClick}
@@ -45,4 +47,3 @@ export default function CreatePlaylistButton({ onClick }: CreatePlaylistButtonPr
     </div>
   );
 }
-

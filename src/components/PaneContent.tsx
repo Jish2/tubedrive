@@ -28,7 +28,7 @@ interface PaneContentProps {
     playlistId: string,
     videoId: string,
     sourcePlaylistId: string,
-    playlistItemId: string
+    playlistItemId: string,
   ) => void;
 }
 
@@ -141,7 +141,7 @@ export default function PaneContent({
   const handleCreatePlaylist = async (
     title: string,
     description: string,
-    privacyStatus: "private" | "unlisted" | "public"
+    privacyStatus: "private" | "unlisted" | "public",
   ) => {
     await createPlaylist(title, description, privacyStatus);
   };
@@ -150,7 +150,7 @@ export default function PaneContent({
     videoId: string,
     sourcePaneId: string,
     sourcePlaylistId: string,
-    playlistItemId: string
+    playlistItemId: string,
   ) => {
     if (
       onFileDrop &&
@@ -165,7 +165,7 @@ export default function PaneContent({
           currentFolderId,
           videoId,
           sourcePlaylistId,
-          playlistItemId
+          playlistItemId,
         );
         // Reload this pane after adding
         await reloadPlaylistItems();
@@ -334,7 +334,7 @@ export default function PaneContent({
                 videoId,
                 sourcePaneId,
                 sourcePlaylistId,
-                playlistItemId
+                playlistItemId,
               );
             }
             // Clear global drag data after drop

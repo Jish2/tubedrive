@@ -58,7 +58,7 @@ export interface YouTubePlaylistItemsResponse {
 export async function fetchUserPlaylists(
   accessToken: string,
   maxResults: number = 50,
-  pageToken?: string
+  pageToken?: string,
 ): Promise<YouTubePlaylistResponse> {
   const params = new URLSearchParams({
     part: "snippet,contentDetails",
@@ -83,7 +83,7 @@ export async function fetchUserPlaylists(
     throw new Error(
       `Failed to fetch playlists: ${
         error.error?.message || response.statusText
-      }`
+      }`,
     );
   }
 
@@ -97,7 +97,7 @@ export async function fetchPlaylistItems(
   accessToken: string,
   playlistId: string,
   maxResults: number = 50,
-  pageToken?: string
+  pageToken?: string,
 ): Promise<YouTubePlaylistItemsResponse> {
   const params = new URLSearchParams({
     part: "snippet",
@@ -122,7 +122,7 @@ export async function fetchPlaylistItems(
     throw new Error(
       `Failed to fetch playlist items: ${
         error.error?.message || response.statusText
-      }`
+      }`,
     );
   }
 
@@ -134,7 +134,7 @@ export async function fetchPlaylistItems(
  */
 export async function fetchAllPlaylistItems(
   accessToken: string,
-  playlistId: string
+  playlistId: string,
 ): Promise<YouTubePlaylistItem[]> {
   const allItems: YouTubePlaylistItem[] = [];
   let pageToken: string | undefined;
@@ -144,7 +144,7 @@ export async function fetchAllPlaylistItems(
       accessToken,
       playlistId,
       50,
-      pageToken
+      pageToken,
     );
     allItems.push(...response.items);
     pageToken = response.nextPageToken;
@@ -160,7 +160,7 @@ export async function createPlaylist(
   accessToken: string,
   title: string,
   description: string = "",
-  privacyStatus: "private" | "unlisted" | "public" = "private"
+  privacyStatus: "private" | "unlisted" | "public" = "private",
 ): Promise<YouTubePlaylist> {
   const response = await fetch(
     `${YOUTUBE_API_BASE}/playlists?part=snippet,status`,
@@ -179,7 +179,7 @@ export async function createPlaylist(
           privacyStatus,
         },
       }),
-    }
+    },
   );
 
   if (!response.ok) {
@@ -189,7 +189,7 @@ export async function createPlaylist(
     throw new Error(
       `Failed to create playlist: ${
         error.error?.message || response.statusText
-      }`
+      }`,
     );
   }
 
@@ -204,7 +204,7 @@ export async function updatePlaylist(
   accessToken: string,
   playlistId: string,
   title: string,
-  description: string = ""
+  description: string = "",
 ): Promise<YouTubePlaylist> {
   const response = await fetch(`${YOUTUBE_API_BASE}/playlists?part=snippet`, {
     method: "PUT",
@@ -228,7 +228,7 @@ export async function updatePlaylist(
     throw new Error(
       `Failed to update playlist: ${
         error.error?.message || response.statusText
-      }`
+      }`,
     );
   }
 
@@ -242,7 +242,7 @@ export async function updatePlaylist(
 export async function addVideoToPlaylist(
   accessToken: string,
   playlistId: string,
-  videoId: string
+  videoId: string,
 ): Promise<YouTubePlaylistItem> {
   const response = await fetch(
     `${YOUTUBE_API_BASE}/playlistItems?part=snippet`,
@@ -261,7 +261,7 @@ export async function addVideoToPlaylist(
           },
         },
       }),
-    }
+    },
   );
 
   if (!response.ok) {
@@ -271,7 +271,7 @@ export async function addVideoToPlaylist(
     throw new Error(
       `Failed to add video to playlist: ${
         error.error?.message || response.statusText
-      }`
+      }`,
     );
   }
 
@@ -284,7 +284,7 @@ export async function addVideoToPlaylist(
  */
 export async function removeVideoFromPlaylist(
   accessToken: string,
-  playlistItemId: string
+  playlistItemId: string,
 ): Promise<void> {
   const response = await fetch(
     `${YOUTUBE_API_BASE}/playlistItems?id=${playlistItemId}`,
@@ -293,7 +293,7 @@ export async function removeVideoFromPlaylist(
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
-    }
+    },
   );
 
   if (!response.ok) {
@@ -303,7 +303,7 @@ export async function removeVideoFromPlaylist(
     throw new Error(
       `Failed to remove video from playlist: ${
         error.error?.message || response.statusText
-      }`
+      }`,
     );
   }
 }
@@ -313,7 +313,7 @@ export async function removeVideoFromPlaylist(
  */
 export async function deletePlaylist(
   accessToken: string,
-  playlistId: string
+  playlistId: string,
 ): Promise<void> {
   const response = await fetch(
     `${YOUTUBE_API_BASE}/playlists?id=${playlistId}`,
@@ -322,7 +322,7 @@ export async function deletePlaylist(
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
-    }
+    },
   );
 
   if (!response.ok) {
@@ -332,7 +332,7 @@ export async function deletePlaylist(
     throw new Error(
       `Failed to delete playlist: ${
         error.error?.message || response.statusText
-      }`
+      }`,
     );
   }
 }

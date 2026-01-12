@@ -1,4 +1,4 @@
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from "../contexts/AuthContext";
 
 export default function UserMenu() {
   const { user, logout } = useAuth();
@@ -24,4 +24,3 @@ export default function UserMenu() {
     </div>
   );
 }
-
