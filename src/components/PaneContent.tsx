@@ -14,6 +14,8 @@ import {
   addVideosToPlaylist,
 } from "../services/youtubeApi";
 
+export type ViewMode = "grid" | "list";
+
 interface BreadcrumbItem {
   id: string;
   name: string;
@@ -28,7 +30,7 @@ interface PaneContentProps {
     playlistId: string,
     videoId: string,
     sourcePlaylistId: string,
-    playlistItemId: string,
+    playlistItemId: string
   ) => void;
 }
 
@@ -71,6 +73,17 @@ export default function PaneContent({
     current: number;
     total: number;
   } | null>(null);
+
+  // Load view mode from localStorage or default to grid
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const saved = localStorage.getItem("viewMode");
+    return (saved === "grid" || saved === "list" ? saved : "grid") as ViewMode;
+  });
+
+  // Save view mode to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem("viewMode", viewMode);
+  }, [viewMode]);
 
   const getDragData = (): DragVideoData | undefined => {
     return (window as unknown as { __dragVideoData?: DragVideoData })
@@ -147,14 +160,14 @@ export default function PaneContent({
   const handleCreatePlaylist = async (
     title: string,
     description: string,
-    privacyStatus: "private" | "unlisted" | "public",
+    privacyStatus: "private" | "unlisted" | "public"
   ) => {
     await createPlaylist(title, description, privacyStatus);
   };
 
   const handleImportPlaylist = async (
     playlistId: string,
-    videoIds: string[],
+    videoIds: string[]
   ) => {
     if (!token) {
       throw new Error("Missing authentication token");
@@ -163,7 +176,7 @@ export default function PaneContent({
     setImportProgress({ current: 0, total: videoIds.length });
     try {
       await addVideosToPlaylist(token, playlistId, videoIds, (current, total) =>
-        setImportProgress({ current, total }),
+        setImportProgress({ current, total })
       );
       // Reload playlist items if we're viewing the imported playlist
       if (currentFolderId === playlistId) {
@@ -180,7 +193,7 @@ export default function PaneContent({
     title: string,
     description: string,
     privacyStatus: "private" | "unlisted" | "public",
-    videoIds: string[],
+    videoIds: string[]
   ) => {
     if (!token) {
       throw new Error("Missing authentication token");
@@ -192,7 +205,7 @@ export default function PaneContent({
       const newPlaylist = await createPlaylist(
         title,
         description,
-        privacyStatus,
+        privacyStatus
       );
       if (!newPlaylist) {
         throw new Error("Failed to create playlist");
@@ -205,7 +218,7 @@ export default function PaneContent({
         newPlaylist.id,
         videoIds,
         (current, total) =>
-          setImportProgress({ current: current + 1, total: total + 1 }),
+          setImportProgress({ current: current + 1, total: total + 1 })
       );
 
       // Reload playlists to show the new one
@@ -219,7 +232,7 @@ export default function PaneContent({
     videoId: string,
     sourcePaneId: string,
     sourcePlaylistId: string,
-    playlistItemId: string,
+    playlistItemId: string
   ) => {
     if (
       onFileDrop &&
@@ -234,7 +247,7 @@ export default function PaneContent({
           currentFolderId,
           videoId,
           sourcePlaylistId,
-          playlistItemId,
+          playlistItemId
         );
         // Reload this pane after adding
         await reloadPlaylistItems();
@@ -320,6 +333,55 @@ export default function PaneContent({
               ))}
             </nav>
             <div className="flex items-center gap-2 flex-shrink-0">
+              {/* View Mode Toggle */}
+              <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-1 border border-gray-700">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`p-1.5 rounded transition-colors ${
+                    viewMode === "grid"
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-400 hover:text-white hover:bg-gray-700"
+                  }`}
+                  title="Grid View"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                    />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`p-1.5 rounded transition-colors ${
+                    viewMode === "list"
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-400 hover:text-white hover:bg-gray-700"
+                  }`}
+                  title="List View"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  </svg>
+                </button>
+              </div>
               <button
                 onClick={() => setIsAddVideoModalOpen(true)}
                 className="toolbar-button flex items-center gap-2 px-2 md:px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-white text-sm font-medium"
@@ -448,7 +510,7 @@ export default function PaneContent({
                 videoId,
                 sourcePaneId,
                 sourcePlaylistId,
-                playlistItemId,
+                playlistItemId
               );
             }
             // Clear global drag data after drop
@@ -493,10 +555,17 @@ export default function PaneContent({
             </div>
           ) : (
             <div
-              className="grid gap-4"
-              style={{
-                gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-              }}
+              className={
+                viewMode === "grid" ? "grid gap-4" : "flex flex-col gap-2"
+              }
+              style={
+                viewMode === "grid"
+                  ? {
+                      gridTemplateColumns:
+                        "repeat(auto-fill, minmax(120px, 1fr))",
+                    }
+                  : undefined
+              }
             >
               {files.map((file) => (
                 <File
@@ -505,6 +574,7 @@ export default function PaneContent({
                   paneId={paneId}
                   playlistId={currentFolderId!}
                   onDelete={() => handleFileDelete(file.id)}
+                  viewMode={viewMode}
                 />
               ))}
             </div>
@@ -555,6 +625,55 @@ export default function PaneContent({
             </button>
           </nav>
           <div className="flex items-center gap-2 flex-shrink-0">
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-1 border border-gray-700">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-1.5 rounded transition-colors ${
+                  viewMode === "grid"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-400 hover:text-white hover:bg-gray-700"
+                }`}
+                title="Grid View"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                  />
+                </svg>
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-1.5 rounded transition-colors ${
+                  viewMode === "list"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-400 hover:text-white hover:bg-gray-700"
+                }`}
+                title="List View"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </button>
+            </div>
             <button
               onClick={() => setIsCreatePlaylistModalOpen(true)}
               className="toolbar-button flex items-center gap-2 px-2 md:px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-white text-sm font-medium"
@@ -607,10 +726,17 @@ export default function PaneContent({
           </div>
         ) : (
           <div
-            className="grid gap-4"
-            style={{
-              gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-            }}
+            className={
+              viewMode === "grid" ? "grid gap-4" : "flex flex-col gap-2"
+            }
+            style={
+              viewMode === "grid"
+                ? {
+                    gridTemplateColumns:
+                      "repeat(auto-fill, minmax(120px, 1fr))",
+                  }
+                : undefined
+            }
           >
             {folders.map((folder) => (
               <Folder
@@ -622,6 +748,7 @@ export default function PaneContent({
                 onDelete={() => {}}
                 onFileDrop={() => {}}
                 onClick={() => onFolderClick(folder.id, folder.name)}
+                viewMode={viewMode}
               />
             ))}
           </div>
