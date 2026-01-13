@@ -96,7 +96,7 @@ export default function FolderView() {
   const handleCreatePlaylist = async (
     title: string,
     description: string,
-    privacyStatus: "private" | "unlisted" | "public"
+    privacyStatus: "private" | "unlisted" | "public",
   ) => {
     await createPlaylist(title, description, privacyStatus);
   };
