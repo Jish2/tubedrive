@@ -10,7 +10,7 @@ import { useYouTubePlaylists } from "../hooks/useYouTubePlaylists";
 import { usePlaylistItems } from "../hooks/usePlaylistItems";
 import { usePinnedPlaylists } from "../hooks/usePinnedPlaylists";
 import { useAuth } from "../contexts/AuthContext";
-import { addVideoToPlaylist } from "../services/youtubeApi";
+import { addVideoToPlaylist, removeVideoFromPlaylist } from "../services/youtubeApi";
 
 export default function FolderView() {
   const {
