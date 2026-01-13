@@ -41,7 +41,7 @@ export function usePlaylistItems(playlistId: string | null) {
       setNextPageToken(response.nextPageToken ?? null);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to load playlist items"
+        err instanceof Error ? err.message : "Failed to load playlist items",
       );
       console.error("Error loading playlist items:", err);
       setItems([]);
@@ -82,14 +82,14 @@ export function usePlaylistItems(playlistId: string | null) {
         token,
         playlistId,
         PAGE_SIZE,
-        nextPageToken
+        nextPageToken,
       );
       console.log(`Loaded ${response.items.length} more items`);
       setItems((prev) => [...prev, ...response.items]);
       setNextPageToken(response.nextPageToken ?? null);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to load more videos"
+        err instanceof Error ? err.message : "Failed to load more videos",
       );
       console.error("Error loading more playlist items:", err);
     } finally {

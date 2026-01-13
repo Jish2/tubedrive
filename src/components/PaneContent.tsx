@@ -7,6 +7,7 @@ import CreatePlaylistModal from "./CreatePlaylistModal";
 import ImportPlaylistModal from "./ImportPlaylistModal";
 import { useYouTubePlaylists } from "../hooks/useYouTubePlaylists";
 import { usePlaylistItems } from "../hooks/usePlaylistItems";
+import { usePinnedPlaylists } from "../hooks/usePinnedPlaylists";
 import { useAuth } from "../contexts/AuthContext";
 import {
   addVideoToPlaylist,
@@ -39,7 +40,7 @@ interface PaneContentProps {
     playlistId: string,
     videoId: string,
     sourcePlaylistId: string,
-    playlistItemId: string
+    playlistItemId: string,
   ) => void;
 }
 
@@ -65,6 +66,7 @@ export default function PaneContent({
     createPlaylist,
     loadPlaylists,
   } = useYouTubePlaylists();
+  const { togglePin, isPinned } = usePinnedPlaylists();
   const { token } = useAuth();
   const {
     items: playlistItems,
@@ -182,9 +184,9 @@ export default function PaneContent({
     };
   }, [currentFolderId, addPlaylistItem, removePlaylistItem, loadPlaylists]);
 
-  // Convert YouTube playlists to FolderItem format
+  // Convert YouTube playlists to FolderItem format and sort by pinned status
   const folders = useMemo<FolderItem[]>(() => {
-    return playlists.map((playlist) => {
+    const folderItems = playlists.map((playlist) => {
       const isEmpty = playlist.contentDetails?.itemCount === 0;
       return {
         id: playlist.id,
@@ -198,7 +200,16 @@ export default function PaneContent({
             playlist.snippet.thumbnails?.default?.url,
       };
     });
-  }, [playlists]);
+
+    // Sort folders: pinned playlists first, then others
+    return folderItems.sort((a, b) => {
+      const aIsPinned = isPinned(a.id);
+      const bIsPinned = isPinned(b.id);
+      if (aIsPinned && !bIsPinned) return -1;
+      if (!aIsPinned && bIsPinned) return 1;
+      return 0; // Keep original order for items with same pinned status
+    });
+  }, [playlists, isPinned]);
 
   // Convert YouTube playlist items to FileItem format
   const files = useMemo<FileItem[]>(() => {
@@ -243,7 +254,7 @@ export default function PaneContent({
 
       if (shouldLoad) {
         console.log(
-          `Loading more: visible=${lastVisibleIndex}, total=${files.length}, threshold=${threshold}`
+          `Loading more: visible=${lastVisibleIndex}, total=${files.length}, threshold=${threshold}`,
         );
         loadMorePlaylistItems();
       }
@@ -255,7 +266,7 @@ export default function PaneContent({
       itemsLoadingMore,
       loadMorePlaylistItems,
       files.length,
-    ]
+    ],
   );
 
   const handleAddVideo = async (videoId: string) => {
@@ -270,14 +281,14 @@ export default function PaneContent({
   const handleCreatePlaylist = async (
     title: string,
     description: string,
-    privacyStatus: "private" | "unlisted" | "public"
+    privacyStatus: "private" | "unlisted" | "public",
   ) => {
     await createPlaylist(title, description, privacyStatus);
   };
 
   const handleImportPlaylist = async (
     playlistId: string,
-    videoIds: string[]
+    videoIds: string[],
   ) => {
     if (!token) {
       throw new Error("Missing authentication token");
@@ -286,7 +297,7 @@ export default function PaneContent({
     setImportProgress({ current: 0, total: videoIds.length });
     try {
       await addVideosToPlaylist(token, playlistId, videoIds, (current, total) =>
-        setImportProgress({ current, total })
+        setImportProgress({ current, total }),
       );
       // Reload playlist items if we're viewing the imported playlist
       if (currentFolderId === playlistId) {
@@ -303,7 +314,7 @@ export default function PaneContent({
     title: string,
     description: string,
     privacyStatus: "private" | "unlisted" | "public",
-    videoIds: string[]
+    videoIds: string[],
   ) => {
     if (!token) {
       throw new Error("Missing authentication token");
@@ -315,7 +326,7 @@ export default function PaneContent({
       const newPlaylist = await createPlaylist(
         title,
         description,
-        privacyStatus
+        privacyStatus,
       );
       if (!newPlaylist) {
         throw new Error("Failed to create playlist");
@@ -328,7 +339,7 @@ export default function PaneContent({
         newPlaylist.id,
         videoIds,
         (current, total) =>
-          setImportProgress({ current: current + 1, total: total + 1 })
+          setImportProgress({ current: current + 1, total: total + 1 }),
       );
 
       // Reload playlists to show the new one
@@ -342,7 +353,7 @@ export default function PaneContent({
     videoId: string,
     sourcePaneId: string,
     sourcePlaylistId: string,
-    playlistItemId: string
+    playlistItemId: string,
   ) => {
     if (
       onFileDrop &&
@@ -356,7 +367,7 @@ export default function PaneContent({
           currentFolderId,
           videoId,
           sourcePlaylistId,
-          playlistItemId
+          playlistItemId,
         );
         // Optimistic updates are handled by the event listener
       } catch (error) {
@@ -622,7 +633,7 @@ export default function PaneContent({
                 videoId,
                 sourcePaneId,
                 sourcePlaylistId,
-                playlistItemId
+                playlistItemId,
               );
             }
 
@@ -729,7 +740,8 @@ export default function PaneContent({
                     visibleColumnStopIndex,
                   }: GridOnItemsRenderedProps) =>
                     maybeLoadMore(
-                      visibleRowStopIndex * columnCount + visibleColumnStopIndex
+                      visibleRowStopIndex * columnCount +
+                        visibleColumnStopIndex,
                     )
                   }
                 >
@@ -952,6 +964,8 @@ export default function PaneContent({
                 onFileDrop={() => {}}
                 onClick={() => onFolderClick(folder.id, folder.name)}
                 viewMode={viewMode}
+                isPinned={isPinned(folder.id)}
+                onTogglePin={togglePin}
               />
             ))}
           </div>

@@ -19,7 +19,7 @@ interface PaneState {
 
 // Load pane state from URL
 function loadPanesFromURL(
-  playlists: Array<{ id: string; snippet: { title: string } }>
+  playlists: Array<{ id: string; snippet: { title: string } }>,
 ): PaneState[] {
   const params = new URLSearchParams(window.location.search);
   const panes: PaneState[] = [];
@@ -64,7 +64,7 @@ function loadPanesFromURL(
     for (const name of breadcrumbNames) {
       // Find playlist by name (case-insensitive, take first match)
       const playlist = playlists.find(
-        (p) => p.snippet.title.toLowerCase() === name.toLowerCase()
+        (p) => p.snippet.title.toLowerCase() === name.toLowerCase(),
       );
 
       if (playlist) {
@@ -175,7 +175,7 @@ export default function MultiPaneView() {
     ) {
       const params = new URLSearchParams(window.location.search);
       const hasPaneParams = Array.from(params.keys()).some((key) =>
-        key.startsWith("pane-")
+        key.startsWith("pane-"),
       );
 
       if (hasPaneParams) {
@@ -225,11 +225,11 @@ export default function MultiPaneView() {
                   { id: folderId, name: folderName },
                 ],
               }
-            : p
-        )
+            : p,
+        ),
       );
     },
-    []
+    [],
   );
 
   const handleBreadcrumbClick = useCallback((paneId: string, index: number) => {
@@ -240,8 +240,8 @@ export default function MultiPaneView() {
               ...p,
               breadcrumb: index === -1 ? [] : p.breadcrumb.slice(0, index + 1),
             }
-          : p
-      )
+          : p,
+      ),
     );
   }, []);
 
@@ -256,7 +256,7 @@ export default function MultiPaneView() {
         setPanes((prev) => prev.filter((p) => p.id !== paneId));
       }
     },
-    [panes.length]
+    [panes.length],
   );
 
   const handleFileDrop = useCallback(
@@ -264,7 +264,7 @@ export default function MultiPaneView() {
       targetPlaylistId: string,
       videoId: string,
       sourcePlaylistId: string,
-      playlistItemId: string
+      playlistItemId: string,
     ) => {
       if (!token) return;
 
@@ -273,7 +273,7 @@ export default function MultiPaneView() {
         const newItem = await addVideoToPlaylist(
           token,
           targetPlaylistId,
-          videoId
+          videoId,
         );
 
         // Optimistically add to target playlist
@@ -284,7 +284,7 @@ export default function MultiPaneView() {
               playlistId: targetPlaylistId,
               item: newItem,
             },
-          })
+          }),
         );
 
         // Remove video from source playlist
@@ -299,7 +299,7 @@ export default function MultiPaneView() {
                 playlistId: sourcePlaylistId,
                 playlistItemId: playlistItemId,
               },
-            })
+            }),
           );
         }
       } catch (error) {
@@ -307,7 +307,7 @@ export default function MultiPaneView() {
         throw error;
       }
     },
-    [token]
+    [token],
   );
 
   return (

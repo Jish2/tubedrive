@@ -8,6 +8,7 @@ import CreatePlaylistButton from "./CreatePlaylistButton";
 import CreatePlaylistModal from "./CreatePlaylistModal";
 import { useYouTubePlaylists } from "../hooks/useYouTubePlaylists";
 import { usePlaylistItems } from "../hooks/usePlaylistItems";
+import { usePinnedPlaylists } from "../hooks/usePinnedPlaylists";
 import { useAuth } from "../contexts/AuthContext";
 import { addVideoToPlaylist } from "../services/youtubeApi";
 
@@ -17,6 +18,7 @@ export default function FolderView() {
     loading: playlistsLoading,
     createPlaylist,
   } = useYouTubePlaylists();
+  const { togglePin, isPinned } = usePinnedPlaylists();
   const { token } = useAuth();
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const {
@@ -28,9 +30,9 @@ export default function FolderView() {
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
 
-  // Convert YouTube playlists to FolderItem format
+  // Convert YouTube playlists to FolderItem format and sort by pinned status
   const folders = useMemo<FolderItem[]>(() => {
-    return playlists.map((playlist) => {
+    const folderItems = playlists.map((playlist) => {
       // Don't show thumbnail for empty playlists - use folder icon instead
       const isEmpty = playlist.contentDetails?.itemCount === 0;
       return {
@@ -45,7 +47,16 @@ export default function FolderView() {
             playlist.snippet.thumbnails?.default?.url,
       };
     });
-  }, [playlists]);
+
+    // Sort folders: pinned playlists first, then others
+    return folderItems.sort((a, b) => {
+      const aIsPinned = isPinned(a.id);
+      const bIsPinned = isPinned(b.id);
+      if (aIsPinned && !bIsPinned) return -1;
+      if (!aIsPinned && bIsPinned) return 1;
+      return 0; // Keep original order for items with same pinned status
+    });
+  }, [playlists, isPinned]);
 
   // Convert YouTube playlist items to FileItem format
   const files = useMemo<FileItem[]>(() => {
@@ -196,6 +207,8 @@ export default function FolderView() {
                 onDelete={() => {}} // Disable delete for now
                 onFileDrop={() => {}} // Disable drag and drop for now
                 onClick={handleFolderClick}
+                isPinned={isPinned(folder.id)}
+                onTogglePin={togglePin}
               />
             ))}
           </div>
