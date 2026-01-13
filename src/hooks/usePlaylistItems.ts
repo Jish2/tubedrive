@@ -41,7 +41,7 @@ export function usePlaylistItems(playlistId: string | null) {
       setNextPageToken(response.nextPageToken ?? null);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to load playlist items",
+        err instanceof Error ? err.message : "Failed to load playlist items"
       );
       console.error("Error loading playlist items:", err);
       setItems([]);
@@ -82,14 +82,14 @@ export function usePlaylistItems(playlistId: string | null) {
         token,
         playlistId,
         PAGE_SIZE,
-        nextPageToken,
+        nextPageToken
       );
       console.log(`Loaded ${response.items.length} more items`);
       setItems((prev) => [...prev, ...response.items]);
       setNextPageToken(response.nextPageToken ?? null);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to load more videos",
+        err instanceof Error ? err.message : "Failed to load more videos"
       );
       console.error("Error loading more playlist items:", err);
     } finally {
@@ -104,6 +104,16 @@ export function usePlaylistItems(playlistId: string | null) {
     await loadFirstPage();
   }, [loadFirstPage]);
 
+  // Optimistic update: add an item
+  const addItem = useCallback((item: YouTubePlaylistItem) => {
+    setItems((prev) => [...prev, item]);
+  }, []);
+
+  // Optimistic update: remove an item
+  const removeItem = useCallback((playlistItemId: string) => {
+    setItems((prev) => prev.filter((item) => item.id !== playlistItemId));
+  }, []);
+
   useEffect(() => {
     loadFirstPage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -117,5 +127,7 @@ export function usePlaylistItems(playlistId: string | null) {
     loadMore,
     reload,
     hasMore: Boolean(nextPageToken),
+    addItem,
+    removeItem,
   };
 }

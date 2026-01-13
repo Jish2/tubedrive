@@ -19,7 +19,7 @@ interface PaneState {
 
 // Load pane state from URL
 function loadPanesFromURL(
-  playlists: Array<{ id: string; snippet: { title: string } }>,
+  playlists: Array<{ id: string; snippet: { title: string } }>
 ): PaneState[] {
   const params = new URLSearchParams(window.location.search);
   const panes: PaneState[] = [];
@@ -64,7 +64,7 @@ function loadPanesFromURL(
     for (const name of breadcrumbNames) {
       // Find playlist by name (case-insensitive, take first match)
       const playlist = playlists.find(
-        (p) => p.snippet.title.toLowerCase() === name.toLowerCase(),
+        (p) => p.snippet.title.toLowerCase() === name.toLowerCase()
       );
 
       if (playlist) {
@@ -175,7 +175,7 @@ export default function MultiPaneView() {
     ) {
       const params = new URLSearchParams(window.location.search);
       const hasPaneParams = Array.from(params.keys()).some((key) =>
-        key.startsWith("pane-"),
+        key.startsWith("pane-")
       );
 
       if (hasPaneParams) {
@@ -225,11 +225,11 @@ export default function MultiPaneView() {
                   { id: folderId, name: folderName },
                 ],
               }
-            : p,
-        ),
+            : p
+        )
       );
     },
-    [],
+    []
   );
 
   const handleBreadcrumbClick = useCallback((paneId: string, index: number) => {
@@ -240,8 +240,8 @@ export default function MultiPaneView() {
               ...p,
               breadcrumb: index === -1 ? [] : p.breadcrumb.slice(0, index + 1),
             }
-          : p,
-      ),
+          : p
+      )
     );
   }, []);
 
@@ -256,7 +256,7 @@ export default function MultiPaneView() {
         setPanes((prev) => prev.filter((p) => p.id !== paneId));
       }
     },
-    [panes.length],
+    [panes.length]
   );
 
   const handleFileDrop = useCallback(
@@ -264,44 +264,50 @@ export default function MultiPaneView() {
       targetPlaylistId: string,
       videoId: string,
       sourcePlaylistId: string,
-      playlistItemId: string,
+      playlistItemId: string
     ) => {
       if (!token) return;
 
       try {
-        // Add video to target playlist
-        await addVideoToPlaylist(token, targetPlaylistId, videoId);
+        // Add video to target playlist (API returns the new playlist item)
+        const newItem = await addVideoToPlaylist(
+          token,
+          targetPlaylistId,
+          videoId
+        );
+
+        // Optimistically add to target playlist
+        window.dispatchEvent(
+          new CustomEvent("optimisticUpdate", {
+            detail: {
+              action: "add",
+              playlistId: targetPlaylistId,
+              item: newItem,
+            },
+          })
+        );
 
         // Remove video from source playlist
         if (sourcePlaylistId && playlistItemId) {
           await removeVideoFromPlaylist(token, playlistItemId);
-        }
 
-        // Add a small delay to ensure YouTube API has processed the changes
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        // Reload panes that are viewing either the target or source playlist
-        window.dispatchEvent(
-          new CustomEvent("reloadPane", {
-            detail: { playlistId: targetPlaylistId },
-          }),
-        );
-        if (sourcePlaylistId && sourcePlaylistId !== targetPlaylistId) {
-          // Dispatch separately with a small delay to ensure both reload
-          setTimeout(() => {
-            window.dispatchEvent(
-              new CustomEvent("reloadPane", {
-                detail: { playlistId: sourcePlaylistId },
-              }),
-            );
-          }, 100);
+          // Optimistically remove from source playlist
+          window.dispatchEvent(
+            new CustomEvent("optimisticUpdate", {
+              detail: {
+                action: "remove",
+                playlistId: sourcePlaylistId,
+                playlistItemId: playlistItemId,
+              },
+            })
+          );
         }
       } catch (error) {
         console.error("Failed to move video:", error);
         throw error;
       }
     },
-    [token],
+    [token]
   );
 
   return (

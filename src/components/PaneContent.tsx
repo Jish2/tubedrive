@@ -12,6 +12,7 @@ import {
   addVideoToPlaylist,
   removeVideoFromPlaylist,
   addVideosToPlaylist,
+  type YouTubePlaylistItem,
 } from "../services/youtubeApi";
 import {
   FixedSizeGrid,
@@ -38,7 +39,7 @@ interface PaneContentProps {
     playlistId: string,
     videoId: string,
     sourcePlaylistId: string,
-    playlistItemId: string,
+    playlistItemId: string
   ) => void;
 }
 
@@ -72,6 +73,8 @@ export default function PaneContent({
     reload: reloadPlaylistItems,
     loadMore: loadMorePlaylistItems,
     hasMore: hasMorePlaylistItems,
+    addItem: addPlaylistItem,
+    removeItem: removePlaylistItem,
   } = usePlaylistItems(currentFolderId);
   const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
@@ -79,7 +82,6 @@ export default function PaneContent({
   const [isImportPlaylistModalOpen, setIsImportPlaylistModalOpen] =
     useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [isMovingVideo, setIsMovingVideo] = useState(false);
   const [importProgress, setImportProgress] = useState<{
     current: number;
     total: number;
@@ -149,31 +151,36 @@ export default function PaneContent({
       .__dragVideoData;
   };
 
-  // Listen for reload events
+  // Listen for optimistic update events
   useEffect(() => {
-    const handleReload = (e: Event) => {
-      const customEvent = e as CustomEvent<{ playlistId: string }>;
-      const playlistId = customEvent.detail?.playlistId;
-      // Set loading state if this pane is viewing the playlist that was modified
+    const handleOptimisticUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        action: "add" | "remove";
+        playlistId: string;
+        item?: YouTubePlaylistItem;
+        playlistItemId?: string;
+      }>;
+      const { action, playlistId, item, playlistItemId } = customEvent.detail;
+
+      // Only update if this pane is viewing the affected playlist
       if (currentFolderId && playlistId === currentFolderId) {
-        setIsMovingVideo(true);
-        reloadPlaylistItems().then(() => {
-          setIsMovingVideo(false);
-        });
+        if (action === "add" && item) {
+          addPlaylistItem(item);
+        } else if (action === "remove" && playlistItemId) {
+          removePlaylistItem(playlistItemId);
+        }
       }
+
       // Also reload playlists if we're at root view (to update playlist counts)
       if (!currentFolderId && playlistId) {
-        setIsMovingVideo(true);
-        loadPlaylists().then(() => {
-          setIsMovingVideo(false);
-        });
+        loadPlaylists();
       }
     };
-    window.addEventListener("reloadPane", handleReload);
+    window.addEventListener("optimisticUpdate", handleOptimisticUpdate);
     return () => {
-      window.removeEventListener("reloadPane", handleReload);
+      window.removeEventListener("optimisticUpdate", handleOptimisticUpdate);
     };
-  }, [currentFolderId, reloadPlaylistItems, loadPlaylists]);
+  }, [currentFolderId, addPlaylistItem, removePlaylistItem, loadPlaylists]);
 
   // Convert YouTube playlists to FolderItem format
   const folders = useMemo<FolderItem[]>(() => {
@@ -236,7 +243,7 @@ export default function PaneContent({
 
       if (shouldLoad) {
         console.log(
-          `Loading more: visible=${lastVisibleIndex}, total=${files.length}, threshold=${threshold}`,
+          `Loading more: visible=${lastVisibleIndex}, total=${files.length}, threshold=${threshold}`
         );
         loadMorePlaylistItems();
       }
@@ -248,7 +255,7 @@ export default function PaneContent({
       itemsLoadingMore,
       loadMorePlaylistItems,
       files.length,
-    ],
+    ]
   );
 
   const handleAddVideo = async (videoId: string) => {
@@ -263,14 +270,14 @@ export default function PaneContent({
   const handleCreatePlaylist = async (
     title: string,
     description: string,
-    privacyStatus: "private" | "unlisted" | "public",
+    privacyStatus: "private" | "unlisted" | "public"
   ) => {
     await createPlaylist(title, description, privacyStatus);
   };
 
   const handleImportPlaylist = async (
     playlistId: string,
-    videoIds: string[],
+    videoIds: string[]
   ) => {
     if (!token) {
       throw new Error("Missing authentication token");
@@ -279,7 +286,7 @@ export default function PaneContent({
     setImportProgress({ current: 0, total: videoIds.length });
     try {
       await addVideosToPlaylist(token, playlistId, videoIds, (current, total) =>
-        setImportProgress({ current, total }),
+        setImportProgress({ current, total })
       );
       // Reload playlist items if we're viewing the imported playlist
       if (currentFolderId === playlistId) {
@@ -296,7 +303,7 @@ export default function PaneContent({
     title: string,
     description: string,
     privacyStatus: "private" | "unlisted" | "public",
-    videoIds: string[],
+    videoIds: string[]
   ) => {
     if (!token) {
       throw new Error("Missing authentication token");
@@ -308,7 +315,7 @@ export default function PaneContent({
       const newPlaylist = await createPlaylist(
         title,
         description,
-        privacyStatus,
+        privacyStatus
       );
       if (!newPlaylist) {
         throw new Error("Failed to create playlist");
@@ -321,7 +328,7 @@ export default function PaneContent({
         newPlaylist.id,
         videoIds,
         (current, total) =>
-          setImportProgress({ current: current + 1, total: total + 1 }),
+          setImportProgress({ current: current + 1, total: total + 1 })
       );
 
       // Reload playlists to show the new one
@@ -335,7 +342,7 @@ export default function PaneContent({
     videoId: string,
     sourcePaneId: string,
     sourcePlaylistId: string,
-    playlistItemId: string,
+    playlistItemId: string
   ) => {
     if (
       onFileDrop &&
@@ -344,20 +351,18 @@ export default function PaneContent({
       sourcePlaylistId !== currentFolderId
     ) {
       try {
-        setIsMovingVideo(true);
-        // Add to target playlist
+        // No need to set loading state for optimistic updates
         await onFileDrop(
           currentFolderId,
           videoId,
           sourcePlaylistId,
-          playlistItemId,
+          playlistItemId
         );
-        // Reload this pane after adding
-        await reloadPlaylistItems();
-        setIsMovingVideo(false);
+        // Optimistic updates are handled by the event listener
       } catch (error) {
         console.error("Failed to move video:", error);
-        setIsMovingVideo(false);
+        // On error, reload to get correct state
+        await reloadPlaylistItems();
         throw error;
       }
     }
@@ -366,10 +371,14 @@ export default function PaneContent({
   const handleFileDelete = async (playlistItemId: string) => {
     if (!token || !currentFolderId) return;
     try {
+      // Optimistically remove from UI
+      removePlaylistItem(playlistItemId);
+      // Then make API call
       await removeVideoFromPlaylist(token, playlistItemId);
-      await reloadPlaylistItems();
     } catch (error) {
       console.error("Failed to remove video:", error);
+      // On error, reload to restore correct state
+      await reloadPlaylistItems();
     }
   };
 
@@ -613,7 +622,7 @@ export default function PaneContent({
                 videoId,
                 sourcePaneId,
                 sourcePlaylistId,
-                playlistItemId,
+                playlistItemId
               );
             }
 
@@ -622,7 +631,7 @@ export default function PaneContent({
             ).__dragVideoData = null;
           }}
         >
-          {(isMovingVideo || importProgress) && (
+          {importProgress && (
             <div className="absolute inset-0 bg-gray-900/80 flex items-center justify-center z-50">
               <div className="bg-gray-800 rounded-lg p-6 flex flex-col items-center gap-4 border border-gray-700">
                 <svg
@@ -645,9 +654,8 @@ export default function PaneContent({
                   />
                 </svg>
                 <div className="text-white text-sm">
-                  {importProgress
-                    ? `Importing videos... ${importProgress.current}/${importProgress.total}`
-                    : "Moving video..."}
+                  Importing videos... {importProgress.current}/
+                  {importProgress.total}
                 </div>
               </div>
             </div>
@@ -721,8 +729,7 @@ export default function PaneContent({
                     visibleColumnStopIndex,
                   }: GridOnItemsRenderedProps) =>
                     maybeLoadMore(
-                      visibleRowStopIndex * columnCount +
-                        visibleColumnStopIndex,
+                      visibleRowStopIndex * columnCount + visibleColumnStopIndex
                     )
                   }
                 >
