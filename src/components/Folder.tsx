@@ -24,6 +24,7 @@ export default function Folder({
 }: FolderProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [thumbnailError, setThumbnailError] = useState(false);
+  const [justReceived, setJustReceived] = useState(false);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -59,8 +60,13 @@ export default function Folder({
     const fileId = e.dataTransfer.getData("text/plain");
     const type = e.dataTransfer.getData("type");
 
-    if (type === "file" && fileId) {
+    // Support both "video" and "file" types for backward compatibility
+    if ((type === "video" || type === "file") && fileId) {
       onFileDrop(folder.id, fileId);
+
+      // Show visual feedback
+      setJustReceived(true);
+      setTimeout(() => setJustReceived(false), 1000);
     }
   };
 
@@ -128,7 +134,9 @@ export default function Folder({
           className={`group relative bg-gray-800 rounded-lg hover:bg-gray-700 cursor-pointer border-2 transition-all flex items-center gap-4 p-3 ${
             isDragOver
               ? "border-blue-500 bg-blue-900/70 scale-105 shadow-2xl shadow-blue-500/50 ring-4 ring-blue-500/30"
-              : "border-transparent hover:border-gray-500"
+              : justReceived
+                ? "border-green-500 bg-green-900/70 scale-105 shadow-2xl shadow-green-500/50 ring-4 ring-green-500/30"
+                : "border-transparent hover:border-gray-500"
           } ${isPinned ? "ring-1 ring-yellow-400/30" : ""}`}
           onClick={handleClick}
           onContextMenu={handleContextMenu}
@@ -204,11 +212,14 @@ export default function Folder({
             )}
             <span className="truncate">{folder.name}</span>
           </span>
-          {folder.files.length > 0 && (
+          {(folder.itemCount !== undefined && folder.itemCount > 0) ||
+          folder.files.length > 0 ? (
             <span className="flex-shrink-0 bg-blue-600 text-white text-xs rounded-full px-2 py-1">
-              {folder.files.length}
+              {folder.itemCount !== undefined
+                ? folder.itemCount
+                : folder.files.length}
             </span>
-          )}
+          ) : null}
         </div>
         {contextMenu && (
           <ContextMenu
@@ -229,7 +240,9 @@ export default function Folder({
         className={`group relative aspect-square bg-gray-800 rounded-lg hover:bg-gray-700 cursor-pointer border-2 transition-all flex flex-col items-stretch p-2 ${
           isDragOver
             ? "border-blue-500 bg-blue-900/70 scale-105 shadow-2xl shadow-blue-500/50 ring-4 ring-blue-500/30"
-            : "border-transparent hover:border-gray-500"
+            : justReceived
+              ? "border-green-500 bg-green-900/70 scale-105 shadow-2xl shadow-green-500/50 ring-4 ring-green-500/30"
+              : "border-transparent hover:border-gray-500"
         } ${isPinned ? "ring-1 ring-yellow-400/30" : ""}`}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
@@ -305,11 +318,14 @@ export default function Folder({
           )}
           <span className="truncate">{folder.name}</span>
         </span>
-        {folder.files.length > 0 && (
+        {(folder.itemCount !== undefined && folder.itemCount > 0) ||
+        folder.files.length > 0 ? (
           <span className="absolute top-2 left-2 bg-blue-600 text-white text-xs rounded-full px-2 py-1 z-10">
-            {folder.files.length}
+            {folder.itemCount !== undefined
+              ? folder.itemCount
+              : folder.files.length}
           </span>
-        )}
+        ) : null}
       </div>
       {contextMenu && (
         <ContextMenu

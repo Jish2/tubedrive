@@ -193,6 +193,7 @@ export default function PaneContent({
         name: playlist.snippet.title,
         type: "folder" as const,
         files: [],
+        itemCount: playlist.contentDetails?.itemCount || 0,
         thumbnailUrl: isEmpty
           ? undefined
           : playlist.snippet.thumbnails?.high?.url ||
@@ -390,6 +391,38 @@ export default function PaneContent({
       console.error("Failed to remove video:", error);
       // On error, reload to restore correct state
       await reloadPlaylistItems();
+    }
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleFolderDrop = async (
+    targetPlaylistId: string,
+    _fileId: string,
+  ) => {
+    // Get drag data from window
+    const dragData = getDragData();
+    if (!dragData?.videoId || !dragData?.sourcePlaylistId) return;
+
+    const { videoId, playlistItemId, sourcePaneId, sourcePlaylistId } =
+      dragData;
+
+    // Don't move if dropping on the same playlist
+    if (sourcePlaylistId === targetPlaylistId) return;
+
+    // Don't move if dragging within the same pane
+    if (sourcePaneId === paneId) return;
+
+    if (onFileDrop && playlistItemId) {
+      try {
+        await onFileDrop(
+          targetPlaylistId,
+          videoId,
+          sourcePlaylistId,
+          playlistItemId,
+        );
+      } catch (error) {
+        console.error("Failed to move video to playlist:", error);
+      }
     }
   };
 
@@ -961,7 +994,7 @@ export default function PaneContent({
                   files: [],
                 }}
                 onDelete={() => {}}
-                onFileDrop={() => {}}
+                onFileDrop={handleFolderDrop}
                 onClick={() => onFolderClick(folder.id, folder.name)}
                 viewMode={viewMode}
                 isPinned={isPinned(folder.id)}

@@ -119,6 +119,42 @@ export function useYouTubePlaylists() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, token]);
 
+  // Listen for optimistic updates to playlist counts
+  useEffect(() => {
+    const handleOptimisticUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        action: "add" | "remove";
+        playlistId: string;
+      }>;
+      const { action, playlistId } = customEvent.detail;
+
+      setPlaylists((prev) =>
+        prev.map((playlist) => {
+          if (playlist.id === playlistId) {
+            const currentCount = playlist.contentDetails?.itemCount || 0;
+            const newCount =
+              action === "add"
+                ? currentCount + 1
+                : Math.max(0, currentCount - 1);
+            return {
+              ...playlist,
+              contentDetails: {
+                ...playlist.contentDetails,
+                itemCount: newCount,
+              },
+            };
+          }
+          return playlist;
+        }),
+      );
+    };
+
+    window.addEventListener("optimisticUpdate", handleOptimisticUpdate);
+    return () => {
+      window.removeEventListener("optimisticUpdate", handleOptimisticUpdate);
+    };
+  }, []);
+
   return {
     playlists,
     loading,

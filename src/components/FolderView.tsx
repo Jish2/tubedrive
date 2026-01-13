@@ -10,7 +10,10 @@ import { useYouTubePlaylists } from "../hooks/useYouTubePlaylists";
 import { usePlaylistItems } from "../hooks/usePlaylistItems";
 import { usePinnedPlaylists } from "../hooks/usePinnedPlaylists";
 import { useAuth } from "../contexts/AuthContext";
-import { addVideoToPlaylist, removeVideoFromPlaylist } from "../services/youtubeApi";
+import {
+  addVideoToPlaylist,
+  removeVideoFromPlaylist,
+} from "../services/youtubeApi";
 
 export default function FolderView() {
   const {
@@ -93,9 +96,66 @@ export default function FolderView() {
   const handleCreatePlaylist = async (
     title: string,
     description: string,
-    privacyStatus: "private" | "unlisted" | "public",
+    privacyStatus: "private" | "unlisted" | "public"
   ) => {
     await createPlaylist(title, description, privacyStatus);
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleFileDrop = async (targetPlaylistId: string, _fileId: string) => {
+    if (!token || !currentFolderId) return;
+
+    // Get drag data from window
+    const dragData = (
+      window as unknown as {
+        __dragVideoData?: {
+          videoId?: string;
+          playlistItemId?: string;
+          sourcePlaylistId?: string;
+        };
+      }
+    ).__dragVideoData;
+
+    if (!dragData?.videoId) return;
+
+    const { videoId, playlistItemId, sourcePlaylistId } = dragData;
+
+    // Don't move if dropping on the same playlist
+    if (sourcePlaylistId === targetPlaylistId) return;
+
+    try {
+      // First add the video to the target playlist
+      await addVideoToPlaylist(token, targetPlaylistId, videoId);
+
+      // Then remove it from the source playlist
+      if (playlistItemId) {
+        await removeVideoFromPlaylist(token, playlistItemId);
+      }
+
+      // Reload the playlist items to show the updated state
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      await reloadPlaylistItems();
+    } catch (error) {
+      console.error("Failed to move video:", error);
+      // Reload to ensure correct state
+      await reloadPlaylistItems();
+      throw error;
+    }
+  };
+
+  const handleFileDelete = async (playlistItemId: string) => {
+    if (!token || !currentFolderId) return;
+
+    try {
+      await removeVideoFromPlaylist(token, playlistItemId);
+      // Reload the playlist items to show the updated state
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      await reloadPlaylistItems();
+    } catch (error) {
+      console.error("Failed to delete video:", error);
+      await reloadPlaylistItems();
+      throw error;
+    }
   };
 
   const currentFolder = currentFolderId
@@ -160,7 +220,9 @@ export default function FolderView() {
                 <File
                   key={file.id}
                   file={file}
-                  onDelete={() => {}} // Disable delete for now
+                  paneId="folder-view"
+                  playlistId={currentFolderId || ""}
+                  onDelete={handleFileDelete}
                 />
               ))}
             </div>
@@ -205,7 +267,7 @@ export default function FolderView() {
                   files: [], // Don't show file count badge for now
                 }}
                 onDelete={() => {}} // Disable delete for now
-                onFileDrop={() => {}} // Disable drag and drop for now
+                onFileDrop={handleFileDrop}
                 onClick={handleFolderClick}
                 isPinned={isPinned(folder.id)}
                 onTogglePin={togglePin}
