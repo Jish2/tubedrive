@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FolderItem, FileItem } from "../types";
 import Folder from "./Folder";
 import File from "./File";
@@ -13,6 +13,14 @@ import {
   removeVideoFromPlaylist,
   addVideosToPlaylist,
 } from "../services/youtubeApi";
+import {
+  FixedSizeGrid,
+  FixedSizeList,
+  type GridChildComponentProps,
+  type GridOnItemsRenderedProps,
+  type ListChildComponentProps,
+  type ListOnItemsRenderedProps,
+} from "react-window";
 
 export type ViewMode = "grid" | "list";
 
@@ -30,7 +38,7 @@ interface PaneContentProps {
     playlistId: string,
     videoId: string,
     sourcePlaylistId: string,
-    playlistItemId: string
+    playlistItemId: string,
   ) => void;
 }
 
@@ -60,7 +68,10 @@ export default function PaneContent({
   const {
     items: playlistItems,
     loading: itemsLoading,
+    loadingMore: itemsLoadingMore,
     reload: reloadPlaylistItems,
+    loadMore: loadMorePlaylistItems,
+    hasMore: hasMorePlaylistItems,
   } = usePlaylistItems(currentFolderId);
   const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
@@ -84,6 +95,54 @@ export default function PaneContent({
   useEffect(() => {
     localStorage.setItem("viewMode", viewMode);
   }, [viewMode]);
+
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const node = contentRef.current;
+    if (!node) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry?.contentRect) {
+        const { width, height } = entry.contentRect;
+        setContainerSize({ width, height });
+      }
+    });
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  // Handle scroll for fallback (non-virtualized) views
+  useEffect(() => {
+    const node = contentRef.current;
+    if (!node) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = node;
+      const scrolledToBottom = scrollHeight - scrollTop - clientHeight < 200;
+
+      if (
+        scrolledToBottom &&
+        hasMorePlaylistItems &&
+        !itemsLoading &&
+        !itemsLoadingMore
+      ) {
+        console.log("Scroll-based load more triggered");
+        loadMorePlaylistItems();
+      }
+    };
+
+    node.addEventListener("scroll", handleScroll);
+    return () => node.removeEventListener("scroll", handleScroll);
+  }, [
+    hasMorePlaylistItems,
+    itemsLoading,
+    itemsLoadingMore,
+    loadMorePlaylistItems,
+  ]);
 
   const getDragData = (): DragVideoData | undefined => {
     return (window as unknown as { __dragVideoData?: DragVideoData })
@@ -148,6 +207,50 @@ export default function PaneContent({
     }));
   }, [playlistItems]);
 
+  const GRID_MIN_COLUMN_WIDTH = 180;
+  const LIST_ITEM_HEIGHT = 88;
+
+  const columnCount = useMemo(() => {
+    if (!containerSize.width) return 1;
+    return Math.max(1, Math.floor(containerSize.width / GRID_MIN_COLUMN_WIDTH));
+  }, [containerSize.width]);
+
+  const columnWidth = useMemo(() => {
+    if (!containerSize.width) return GRID_MIN_COLUMN_WIDTH;
+    return Math.floor(containerSize.width / columnCount);
+  }, [columnCount, containerSize.width]);
+
+  const gridRowHeight = useMemo(() => {
+    // Accommodate square thumbnail plus name/padding
+    return Math.max(220, columnWidth + 60);
+  }, [columnWidth]);
+
+  const maybeLoadMore = useCallback(
+    (lastVisibleIndex: number) => {
+      const threshold = Math.max(5, Math.ceil(columnCount * 1.5));
+      const shouldLoad =
+        hasMorePlaylistItems &&
+        !itemsLoading &&
+        !itemsLoadingMore &&
+        lastVisibleIndex >= files.length - threshold;
+
+      if (shouldLoad) {
+        console.log(
+          `Loading more: visible=${lastVisibleIndex}, total=${files.length}, threshold=${threshold}`,
+        );
+        loadMorePlaylistItems();
+      }
+    },
+    [
+      columnCount,
+      hasMorePlaylistItems,
+      itemsLoading,
+      itemsLoadingMore,
+      loadMorePlaylistItems,
+      files.length,
+    ],
+  );
+
   const handleAddVideo = async (videoId: string) => {
     if (!token || !currentFolderId) {
       throw new Error("Missing token or playlist ID");
@@ -160,14 +263,14 @@ export default function PaneContent({
   const handleCreatePlaylist = async (
     title: string,
     description: string,
-    privacyStatus: "private" | "unlisted" | "public"
+    privacyStatus: "private" | "unlisted" | "public",
   ) => {
     await createPlaylist(title, description, privacyStatus);
   };
 
   const handleImportPlaylist = async (
     playlistId: string,
-    videoIds: string[]
+    videoIds: string[],
   ) => {
     if (!token) {
       throw new Error("Missing authentication token");
@@ -176,7 +279,7 @@ export default function PaneContent({
     setImportProgress({ current: 0, total: videoIds.length });
     try {
       await addVideosToPlaylist(token, playlistId, videoIds, (current, total) =>
-        setImportProgress({ current, total })
+        setImportProgress({ current, total }),
       );
       // Reload playlist items if we're viewing the imported playlist
       if (currentFolderId === playlistId) {
@@ -193,7 +296,7 @@ export default function PaneContent({
     title: string,
     description: string,
     privacyStatus: "private" | "unlisted" | "public",
-    videoIds: string[]
+    videoIds: string[],
   ) => {
     if (!token) {
       throw new Error("Missing authentication token");
@@ -205,7 +308,7 @@ export default function PaneContent({
       const newPlaylist = await createPlaylist(
         title,
         description,
-        privacyStatus
+        privacyStatus,
       );
       if (!newPlaylist) {
         throw new Error("Failed to create playlist");
@@ -218,7 +321,7 @@ export default function PaneContent({
         newPlaylist.id,
         videoIds,
         (current, total) =>
-          setImportProgress({ current: current + 1, total: total + 1 })
+          setImportProgress({ current: current + 1, total: total + 1 }),
       );
 
       // Reload playlists to show the new one
@@ -232,7 +335,7 @@ export default function PaneContent({
     videoId: string,
     sourcePaneId: string,
     sourcePlaylistId: string,
-    playlistItemId: string
+    playlistItemId: string,
   ) => {
     if (
       onFileDrop &&
@@ -247,7 +350,7 @@ export default function PaneContent({
           currentFolderId,
           videoId,
           sourcePlaylistId,
-          playlistItemId
+          playlistItemId,
         );
         // Reload this pane after adding
         await reloadPlaylistItems();
@@ -428,15 +531,16 @@ export default function PaneContent({
 
         {/* Grid area */}
         <div
-          className={`flex-1 overflow-auto p-6 transition-all duration-200 ${
+          ref={contentRef}
+          className={`relative flex-1 p-6 overflow-auto transition-all duration-200 ${
             isDragOver
               ? "bg-blue-900/50 border-4 border-blue-400 border-dashed ring-4 ring-blue-500/50"
               : "bg-gray-800"
           }`}
+          style={{ minHeight: 0 }}
           onDragEnter={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            // Use global drag data (set in File drag start) because getData is unreliable during drag
             const dragData = getDragData();
             if (
               dragData?.videoId &&
@@ -470,7 +574,6 @@ export default function PaneContent({
           }}
           onDragLeave={(e) => {
             e.preventDefault();
-            // Only set drag over to false if we're actually leaving the element
             const rect = e.currentTarget.getBoundingClientRect();
             const x = e.clientX;
             const y = e.clientY;
@@ -510,10 +613,10 @@ export default function PaneContent({
                 videoId,
                 sourcePaneId,
                 sourcePlaylistId,
-                playlistItemId
+                playlistItemId,
               );
             }
-            // Clear global drag data after drop
+
             (
               window as unknown as { __dragVideoData?: DragVideoData | null }
             ).__dragVideoData = null;
@@ -549,34 +652,127 @@ export default function PaneContent({
               </div>
             </div>
           )}
-          {itemsLoading ? (
+
+          {itemsLoading && playlistItems.length === 0 ? (
             <div className="text-gray-500 text-center py-16 h-full flex flex-col items-center justify-center">
               <div className="text-white">Loading videos...</div>
             </div>
+          ) : files.length === 0 ? (
+            <div className="text-gray-500 text-center py-16 h-full flex flex-col items-center justify-center">
+              <div className="text-white">No videos yet</div>
+            </div>
           ) : (
-            <div
-              className={
-                viewMode === "grid" ? "grid gap-4" : "flex flex-col gap-2"
-              }
-              style={
-                viewMode === "grid"
-                  ? {
-                      gridTemplateColumns:
-                        "repeat(auto-fill, minmax(120px, 1fr))",
+            <div className="w-full h-full">
+              {viewMode === "list" ? (
+                containerSize.height > 0 ? (
+                  <FixedSizeList
+                    height={containerSize.height || 400}
+                    width={containerSize.width || "100%"}
+                    itemCount={files.length}
+                    itemSize={LIST_ITEM_HEIGHT}
+                    overscanCount={6}
+                    onItemsRendered={({
+                      visibleStopIndex,
+                    }: ListOnItemsRenderedProps) =>
+                      maybeLoadMore(visibleStopIndex)
                     }
-                  : undefined
-              }
-            >
-              {files.map((file) => (
-                <File
-                  key={file.id}
-                  file={file}
-                  paneId={paneId}
-                  playlistId={currentFolderId!}
-                  onDelete={() => handleFileDelete(file.id)}
-                  viewMode={viewMode}
-                />
-              ))}
+                  >
+                    {({ index, style }: ListChildComponentProps<FileItem>) => {
+                      const file = files[index];
+                      return (
+                        <div style={{ ...style, padding: 4 }}>
+                          <File
+                            file={file}
+                            paneId={paneId}
+                            playlistId={currentFolderId!}
+                            onDelete={() => handleFileDelete(file.id)}
+                            viewMode="list"
+                          />
+                        </div>
+                      );
+                    }}
+                  </FixedSizeList>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {files.map((file) => (
+                      <File
+                        key={file.id}
+                        file={file}
+                        paneId={paneId}
+                        playlistId={currentFolderId!}
+                        onDelete={() => handleFileDelete(file.id)}
+                        viewMode="list"
+                      />
+                    ))}
+                  </div>
+                )
+              ) : containerSize.height > 0 ? (
+                <FixedSizeGrid
+                  height={containerSize.height || 400}
+                  width={containerSize.width || 400}
+                  columnCount={columnCount}
+                  columnWidth={columnWidth}
+                  rowCount={Math.ceil(files.length / columnCount)}
+                  rowHeight={gridRowHeight}
+                  overscanRowCount={2}
+                  overscanColumnCount={1}
+                  onItemsRendered={({
+                    visibleRowStopIndex,
+                    visibleColumnStopIndex,
+                  }: GridOnItemsRenderedProps) =>
+                    maybeLoadMore(
+                      visibleRowStopIndex * columnCount +
+                        visibleColumnStopIndex,
+                    )
+                  }
+                >
+                  {({
+                    columnIndex,
+                    rowIndex,
+                    style,
+                  }: GridChildComponentProps) => {
+                    const fileIndex = rowIndex * columnCount + columnIndex;
+                    if (fileIndex >= files.length) return null;
+                    const file = files[fileIndex];
+                    return (
+                      <div style={{ ...style, padding: 8 }}>
+                        <File
+                          file={file}
+                          paneId={paneId}
+                          playlistId={currentFolderId!}
+                          onDelete={() => handleFileDelete(file.id)}
+                          viewMode="grid"
+                        />
+                      </div>
+                    );
+                  }}
+                </FixedSizeGrid>
+              ) : (
+                <div
+                  className="grid gap-4"
+                  style={{
+                    gridTemplateColumns:
+                      "repeat(auto-fill, minmax(140px, 1fr))",
+                  }}
+                >
+                  {files.map((file) => (
+                    <File
+                      key={file.id}
+                      file={file}
+                      paneId={paneId}
+                      playlistId={currentFolderId!}
+                      onDelete={() => handleFileDelete(file.id)}
+                      viewMode="grid"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {itemsLoadingMore && (
+            <div className="absolute bottom-4 right-4 bg-gray-900/90 text-white text-xs px-3 py-2 rounded-lg border border-gray-700 shadow-lg">
+              Loading more videos...
             </div>
           )}
         </div>

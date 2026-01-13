@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import {
   fetchUserPlaylists,
@@ -13,10 +13,15 @@ export function useYouTubePlaylists() {
   const [playlists, setPlaylists] = useState<YouTubePlaylist[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const loadingRef = useRef(false);
 
   const loadPlaylists = useCallback(async () => {
     if (!token || !isAuthenticated) return;
 
+    // Prevent concurrent loads
+    if (loadingRef.current) return;
+
+    loadingRef.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -27,6 +32,7 @@ export function useYouTubePlaylists() {
       console.error("Error loading playlists:", err);
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
   }, [token, isAuthenticated]);
 
@@ -110,7 +116,8 @@ export function useYouTubePlaylists() {
     if (isAuthenticated && token) {
       loadPlaylists();
     }
-  }, [isAuthenticated, token, loadPlaylists]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, token]);
 
   return {
     playlists,
