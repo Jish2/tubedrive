@@ -18,7 +18,6 @@ pnpm install
 ```
 
 2. Set up Google OAuth credentials:
-
    - Go to [Google Cloud Console](https://console.cloud.google.com/)
    - Create a new project or select an existing one
    - Enable the YouTube Data API v3
