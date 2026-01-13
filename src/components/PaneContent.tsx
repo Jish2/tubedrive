@@ -5,6 +5,7 @@ import File from "./File";
 import AddVideoModal from "./AddVideoModal";
 import CreatePlaylistModal from "./CreatePlaylistModal";
 import ImportPlaylistModal from "./ImportPlaylistModal";
+import RenamePlaylistModal from "./RenamePlaylistModal";
 import { useYouTubePlaylists } from "../hooks/useYouTubePlaylists";
 import { usePlaylistItems } from "../hooks/usePlaylistItems";
 import { usePinnedPlaylists } from "../hooks/usePinnedPlaylists";
@@ -64,6 +65,7 @@ export default function PaneContent({
     playlists,
     loading: playlistsLoading,
     createPlaylist,
+    updatePlaylist,
     loadPlaylists,
   } = useYouTubePlaylists();
   const { togglePin, isPinned } = usePinnedPlaylists();
@@ -83,6 +85,11 @@ export default function PaneContent({
     useState(false);
   const [isImportPlaylistModalOpen, setIsImportPlaylistModalOpen] =
     useState(false);
+  const [renamePlaylistState, setRenamePlaylistState] = useState<{
+    playlistId: string;
+    currentTitle: string;
+    currentDescription: string;
+  } | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [importProgress, setImportProgress] = useState<{
     current: number;
@@ -287,6 +294,24 @@ export default function PaneContent({
     await createPlaylist(title, description, privacyStatus);
   };
 
+  const handleRenamePlaylist = async (playlistId: string) => {
+    const playlist = playlists.find((p) => p.id === playlistId);
+    if (playlist) {
+      setRenamePlaylistState({
+        playlistId: playlist.id,
+        currentTitle: playlist.snippet.title,
+        currentDescription: playlist.snippet.description || "",
+      });
+    }
+  };
+
+  const handleRenameSubmit = async (title: string, description: string) => {
+    if (renamePlaylistState) {
+      await updatePlaylist(renamePlaylistState.playlistId, title, description);
+      setRenamePlaylistState(null);
+    }
+  };
+
   const handleImportPlaylist = async (
     playlistId: string,
     videoIds: string[],
@@ -394,11 +419,7 @@ export default function PaneContent({
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleFolderDrop = async (
-    targetPlaylistId: string,
-    _fileId: string,
-  ) => {
+  const handleFolderDrop = async (targetPlaylistId: string) => {
     // Get drag data from window
     const dragData = getDragData();
     if (!dragData?.videoId || !dragData?.sourcePlaylistId) return;
@@ -996,6 +1017,7 @@ export default function PaneContent({
                 onDelete={() => {}}
                 onFileDrop={handleFolderDrop}
                 onClick={() => onFolderClick(folder.id, folder.name)}
+                onRename={handleRenamePlaylist}
                 viewMode={viewMode}
                 isPinned={isPinned(folder.id)}
                 onTogglePin={togglePin}
@@ -1016,6 +1038,13 @@ export default function PaneContent({
         onCreateAndImport={handleCreateAndImportPlaylist}
         playlists={playlists}
         currentPlaylistId={null}
+      />
+      <RenamePlaylistModal
+        isOpen={!!renamePlaylistState}
+        onClose={() => setRenamePlaylistState(null)}
+        onRename={handleRenameSubmit}
+        currentTitle={renamePlaylistState?.currentTitle || ""}
+        currentDescription={renamePlaylistState?.currentDescription}
       />
     </>
   );
