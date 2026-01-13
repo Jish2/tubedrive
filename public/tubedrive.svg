@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="tubeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF0000;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#CC0000;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Tube/Cylinder shape -->
+  <ellipse cx="50" cy="30" rx="35" ry="12" fill="url(#tubeGradient)" opacity="0.8"/>
+  <rect x="15" y="30" width="70" height="40" fill="url(#tubeGradient)"/>
+  <ellipse cx="50" cy="70" rx="35" ry="12" fill="#CC0000"/>
+  
+  <!-- Play button inside -->
+  <polygon points="45,45 45,55 60,50" fill="white" opacity="0.9"/>
+</svg>
+
